@@ -147,4 +147,4 @@ All figures are written to `figures/`. All processed data files are written to `
 
 ## Acknowledgements
 
-Developed as an independent project, drawing on methods from BIME 534 (Biomedical Informatics, University of Washington). Data obtained from NCBI Gene Expression Omnibus (GEO), a public repository maintained by the National Center for Biotechnology Information (NCBI). Allen Human Brain Atlas accessible at human.brain-map.org, produced by the Allen Institute for Brain Science.
+Developed as an independent project, drawing on methods from BIME 534 (Biology & Informatics, University of Washington). Data obtained from NCBI Gene Expression Omnibus (GEO), a public repository maintained by the National Center for Biotechnology Information (NCBI). Allen Human Brain Atlas accessible at human.brain-map.org, produced by the Allen Institute for Brain Science.
