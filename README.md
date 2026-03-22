@@ -22,7 +22,7 @@
 
 **Research Question 2 — partially answered.**
 
-- 15 genes were significantly differentially expressed (FDR < 0.1, |log₂FC| ≥ 0.1), all GABAergic markers downregulated.
+- 15 genes were significantly differentially expressed (FDR < 0.1, |log₂FC| ≥ 0.1). All significant GABAergic markers were downregulated. CLDN5, a blood-brain barrier marker, was the only significantly upregulated gene.
 - Over-representation analysis against manually curated interneuron subtype gene sets showed SST+ was the most enriched category (3/3 genes significant, Fisher p = 0.026). Excitatory neurons showed no enrichment (0/4 genes).
 - Note: enrichment was tested against the curated subtype labels used in this pipeline, not against external databases such as KEGG or GO. Testing against KEGG/GO pathway databases was not implemented.
 
@@ -67,16 +67,16 @@ This analysis focuses on the **prefrontal cortex (Brodmann Area 46) samples from
 
 ## Target Gene Panel
 
-Genes were selected to match the published 58-gene panel from Guillozet-Bongaarts et al. (2014) [2], organised into three categories:
+Genes were selected to match the published 58-gene panel from Guillozet-Bongaarts et al. (2014) [2], organised into three categories. 48 of these genes were present on the GPL570 platform and used in analysis; genes absent from the platform (including CHRNA7, PRODH, and others) were excluded.
 
 **GABAergic interneuron subtype markers**
 `GAD1`, `GAD2`, `SLC6A1`, `CALB1`, `CALB2`, `PVALB`, `SST`, `VIP`, `NPY`, `GRIK1`, `ERBB4`, `TAC1`, `TAC3`
 
 **Schizophrenia candidate / associated genes**
-`AKT1`, `ARC`, `BDNF`, `CAMK2A`, `CHRNA7`, `CNR1`, `COMT`, `DISC1`, `DLG4`, `FEZ1`, `GRIK4`, `KCNH2`, `NDEL1`, `PAFAH1B1`, `PRODH`, `RELN`, `RGS4`, `SLC1A2`, `SLC1A3`, `TAC1`
+`AKT1`, `ARC`, `BDNF`, `CAMK2A`, `CNR1`, `COMT`, `DISC1`, `DLG4`, `FEZ1`, `GRIK4`, `KCNH2`, `NDEL1`, `PAFAH1B1`, `RELN`, `RGS4`, `SLC1A2`, `SLC1A3`
 
 **Laminar / cell-type context markers**
-`CARTPT`, `CUX2`, `MBP`, `NEFH`, `NR4A2`, `PCP4`, `SYNPR`, `NTNG2`, `CTGF`, `CLDN5`, `CNP`, `B3GALT2`, `C8orf79`, `MFGE8`, `NDNF`, `NOS1AP`, `RORB`, `SCN4B`, `SNCG`, `VAMP1`, `VATIL`
+`CARTPT`, `CUX2`, `MBP`, `NEFH`, `NR4A2`, `PCP4`, `SYNPR`, `NTNG2`, `CTGF`, `CLDN5`, `CNP`, `B3GALT2`, `MFGE8`, `NDNF`, `NOS1AP`, `RORB`, `SCN4B`, `SNCG`, `VAMP1`, `VAT1L`
 
 ---
 
@@ -149,6 +149,7 @@ All figures are written to `figures/`. All processed data files are written to `
 
 - Sample size (n = 103 PFC samples) limits statistical power, particularly after FDR correction over a small gene panel
 - The 48-gene panel is curated, not unbiased — enrichment results reflect prior biological knowledge
+- 10 of the 58 target genes from Guillozet-Bongaarts et al. were absent from the GPL570 platform and could not be analysed
 - Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates in this dataset
 - 75% of SCZ donors in the original Allen study had evidence of antipsychotic use at time of death; the degree to which this confounds expression differences cannot be determined
 - Over-representation analysis was conducted against manually curated subtype labels only, not against external pathway databases (KEGG, GO, Reactome)
@@ -174,4 +175,4 @@ All figures are written to `figures/`. All processed data files are written to `
 
 ## Acknowledgements
 
-Developed as an independent project, drawing on methods from BIME 534 (Biomedical Informatics, University of Washington). Data obtained from NCBI Gene Expression Omnibus (GEO), a public repository maintained by the National Center for Biotechnology Information (NCBI). Allen Human Brain Atlas accessible at human.brain-map.org, produced by the Allen Institute for Brain Science.
+Developed as an independent project, drawing on methods from BIME 534 (Biology & Informatics, University of Washington). Data obtained from NCBI Gene Expression Omnibus (GEO), a public repository maintained by the National Center for Biotechnology Information (NCBI). Allen Human Brain Atlas accessible at human.brain-map.org, produced by the Allen Institute for Brain Science.
