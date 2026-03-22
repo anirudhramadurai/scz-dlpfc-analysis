@@ -4,11 +4,27 @@
 
 ---
 
-## Research Question
+## Research Questions
 
-Do the expression profiles of GABAergic interneuron subtype markers (parvalbumin+, somatostatin+, VIP+/calretinin+) in postmortem dorsolateral prefrontal cortex (DLPFC) cluster by cell-type identity, by diagnosis (schizophrenia vs. control), or by both — and does this pattern differ from non-interneuron genes included in the same panel?
+**Primary:** Do the expression profiles of GABAergic interneuron subtype markers (parvalbumin+, somatostatin+, VIP+/calretinin+) in postmortem dorsolateral prefrontal cortex (DLPFC) co-vary as a coordinated block in schizophrenia, or do PV+, SST+, and VIP+ subtypes show independent patterns of dysregulation?
 
-The secondary question is whether genes that are differentially expressed between schizophrenia and control donors are enriched in specific biological pathways (e.g., GABAergic synapse, glutamate receptor signalling, dopamine pathway).
+**Secondary:** Does unsupervised hierarchical clustering of the gene panel recover donor diagnosis (schizophrenia vs. control) without using the diagnostic label as input, and are differentially expressed genes enriched in specific interneuron subtype categories?
+
+---
+
+## What the Analysis Found
+
+**Research Question 1 — partially answered.**
+
+- Unsupervised clustering did **not** recover donor diagnosis (ARI ≈ 0 across all values of k), consistent with the established observation that postmortem brain transcriptomics is dominated by technical and biological covariates rather than disease status.
+- However, GABAergic co-expression structure (fig3) revealed that in controls, PVALB expression is relatively independent of SST+ markers, whereas in schizophrenia this independence is lost — all markers co-vary as a single module. This suggests **coordinated rather than subtype-specific** dysregulation.
+- Gene clustering in the expression heatmap (fig4) shows partial grouping by subtype, but this was not formally tested statistically.
+
+**Research Question 2 — partially answered.**
+
+- 15 genes were significantly differentially expressed (FDR < 0.1, |log₂FC| ≥ 0.1), all GABAergic markers downregulated.
+- Over-representation analysis against manually curated interneuron subtype gene sets showed SST+ was the most enriched category (3/3 genes significant, Fisher p = 0.026). Excitatory neurons showed no enrichment (0/4 genes).
+- Note: enrichment was tested against the curated subtype labels used in this pipeline, not against external databases such as KEGG or GO. Testing against KEGG/GO pathway databases was not implemented.
 
 ---
 
@@ -69,11 +85,11 @@ Genes were selected to match the published 58-gene panel from Guillozet-Bongaart
 | Step | Script | Method | Output |
 |---|---|---|---|
 | 1. Data retrieval | `01_fetch_geo.py` | Direct HTTPS download of GSE53987 SOFT file with custom parsing (GEOparse skipped due to FTP connection issues) | `data/allen_scz_raw.csv` |
-| 2. Preprocessing | `02_preprocess.py` | Filter to SCZ + Control, linear batch correction, log₂ transform + z-score per gene | `data/expression_matrix.csv` |
+| 2. Preprocessing | `02_preprocess.py` | Filter to SCZ + Control, linear batch correction on processing cohort, log₂ transform + z-score per gene | `data/expression_matrix.csv` |
 | 3. Cluster analysis | `03_cluster_analysis.py` | Hierarchical clustering (Ward's linkage, Euclidean), PCA, gene heatmap, interneuron co-expression matrices, cluster validation (silhouette, ARI, cophenetic r) | `figures/fig1_donor_dendrogram.png`, `fig2_pca.png`, `fig3_gabaergic_coexpression.png`, `fig4_gene_heatmap.png`, `fig5_cluster_validation.png` |
-| 4. Differential expression & pathway analysis | `04_pathway_analysis.py` | Welch's t-test + Benjamini–Hochberg FDR correction; over-representation analysis (Fisher's exact test) | `output/differential_expression.csv`, `figures/fig6_volcano.png`, `fig7_barplot_fc.png`, `fig8_pathway_enrichment.png` |
+| 4. Differential expression & pathway analysis | `04_pathway_analysis.py` | Welch's t-test + Benjamini–Hochberg FDR correction; over-representation analysis (Fisher's exact test) against manually curated interneuron subtype gene sets | `output/differential_expression.csv`, `figures/fig6_volcano.png`, `fig7_barplot_fc.png`, `fig8_pathway_enrichment.png` |
 
-The three-generation framework of pathway analysis (over-representation analysis → functional class scoring → pathway topology) is described in Khatri et al. (2012) [5]. This pipeline implements ORA as the primary enrichment method, appropriate given the moderate sample size and the goal of interpretable pathway-level summaries. Batch effects — a major concern in multi-site postmortem microarray studies — are corrected by linear regression on processing cohort prior to clustering, following Leek et al. (2010) [6].
+Batch effects — a major concern in multi-site postmortem microarray studies — are corrected by linear regression on processing cohort prior to clustering, following Leek et al. (2010) [5]. Over-representation analysis tests whether differentially expressed genes are statistically enriched within each manually defined interneuron subtype category (Fisher's exact test). Enrichment against external pathway databases such as KEGG or GO was not implemented in this pipeline.
 
 ---
 
@@ -129,6 +145,17 @@ All figures are written to `figures/`. All processed data files are written to `
 
 ---
 
+## Limitations
+
+- Sample size (n = 103 PFC samples) limits statistical power, particularly after FDR correction over a small gene panel
+- The 48-gene panel is curated, not unbiased — enrichment results reflect prior biological knowledge
+- Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates in this dataset
+- 75% of SCZ donors in the original Allen study had evidence of antipsychotic use at time of death; the degree to which this confounds expression differences cannot be determined
+- Over-representation analysis was conducted against manually curated subtype labels only, not against external pathway databases (KEGG, GO, Reactome)
+- Results are correlational; no causal inference is possible from observational postmortem data
+
+---
+
 ## References
 
 1. Prkačin MV, Banovac I, Petanjek Z, Hladnik A. Cortical interneurons in schizophrenia – cause or effect? *Croatian Medical Journal*. 2023;64:110–122. doi:10.3325/cmj.2023.64.110
@@ -139,12 +166,12 @@ All figures are written to `figures/`. All processed data files are written to `
 
 4. Hawrylycz MJ, Lein ES, Guillozet-Bongaarts AL, Shen EH, Ng L, Miller JA, et al. An anatomically comprehensive atlas of the adult human brain transcriptome. *Nature*. 2012;489:391–399. doi:10.1038/nature11405
 
-5. Khatri P, Sirota M, Butte AJ. Ten years of pathway analysis: current approaches and outstanding challenges. *PLoS Computational Biology*. 2012;8(2):e1002375. doi:10.1371/journal.pcbi.1002375
+5. Leek JT, Scharpf RB, Corrada Bravo H, Simcha D, Langmead B, Johnson WE, Geman D, Baggerly K, Irizarry RA. Tackling the widespread and critical impact of batch effects in high-throughput data. *Nature Reviews Genetics*. 2010;11:733–739. doi:10.1038/nrg2825
 
-6. Leek JT, Scharpf RB, Corrada Bravo H, Simcha D, Langmead B, Johnson WE, Geman D, Baggerly K, Irizarry RA. Tackling the widespread and critical impact of batch effects in high-throughput data. *Nature Reviews Genetics*. 2010;11:733–739. doi:10.1038/nrg2825
+6. Khatri P, Sirota M, Butte AJ. Ten years of pathway analysis: current approaches and outstanding challenges. *PLoS Computational Biology*. 2012;8(2):e1002375. doi:10.1371/journal.pcbi.1002375
 
 ---
 
 ## Acknowledgements
 
-Developed as an independent project, drawing on methods from BIME 534 (Biology & Informatics, University of Washington). Data obtained from NCBI Gene Expression Omnibus (GEO), a public repository maintained by the National Center for Biotechnology Information (NCBI). Allen Human Brain Atlas accessible at human.brain-map.org, produced by the Allen Institute for Brain Science.
+Developed as an independent project, drawing on methods from BIME 534 (Biomedical Informatics, University of Washington). Data obtained from NCBI Gene Expression Omnibus (GEO), a public repository maintained by the National Center for Biotechnology Information (NCBI). Allen Human Brain Atlas accessible at human.brain-map.org, produced by the Allen Institute for Brain Science.
