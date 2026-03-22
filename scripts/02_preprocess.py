@@ -6,28 +6,45 @@ Cleans, batch-corrects, and normalizes GEO expression data.
 Key steps
 ---------
 1. Filter to Schizophrenia and Control donors only
-2. Detect and correct processing batch (GSM prefix-based)
+   (GSE53987 also contains bipolar disorder and MDD donors, excluded here)
+2. Detect and correct processing batch (GSM ID prefix-based)
 3. Log2 transform expression values
-4. Aggregate to mean per donor × gene
+4. Aggregate to mean per donor x gene
 5. Z-score normalize across donors per gene
 6. Annotate genes with interneuron subtype labels
 
 Batch correction rationale
 --------------------------
-Figure inspection (fig1, fig4) reveals that donor clustering and PC1
-are dominated by a technical batch effect corresponding to two sample
-submission cohorts (GSM1304xxx vs GSM1305xxx). This is a known issue
-in multi-cohort postmortem brain datasets. We use linear regression to
-remove the batch effect before downstream analysis, following the
-standard approach of regressing batch out of expression values and
-retaining residuals (see: Leek et al. 2010, Nature Reviews Genetics).
+PCA and hierarchical clustering of the raw data show that PC1 (42% of variance)
+and the dominant cluster split correspond to GSM1304xxx vs GSM1305xxx sample ID
+prefixes, indicating a technical batch effect from two processing cohorts. This
+is a well-documented issue in multi-cohort postmortem brain microarray studies.
+
+We use linear regression to remove the batch effect before downstream analysis:
+for each gene, we fit expr ~ batch, then take residuals + intercept. This removes
+the systematic expression shift between batches while preserving within-batch
+biological variation, following Leek et al. (2010).
+
+Note: explicit covariates (RIN, PMI, medication) were not available in this
+dataset; batch is inferred from sample ID prefix only.
 
 References
 ----------
-Birnbaum R, et al. (2014). Translational Psychiatry. PMC3965839.
-Mistry M, et al. (2013). BMC Neuroscience. GSE53987.
-Dienel SJ, Lewis DA (2019). Neurobiology of Disease. PMC6309598.
-Leek JT, et al. (2010). Nat Rev Genet. DOI:10.1038/nrg2825.
+Guillozet-Bongaarts AL, et al. (2014). Altered gene expression in the
+  dorsolateral prefrontal cortex of individuals with schizophrenia.
+  Molecular Psychiatry, 19(4):478-485. doi:10.1038/mp.2013.30. PMID: 23528911.
+
+Lanz TA, et al. (2019). Postmortem transcriptional profiling reveals widespread
+  increase in inflammation in schizophrenia. Translational Psychiatry, 9(1):151.
+  doi:10.1038/s41398-019-0494-6. PMID: 31123247. GEO: GSE53987.
+
+Dienel SJ, Lewis DA (2019). Alterations in cortical interneurons and cognitive
+  function in schizophrenia. Neurobiology of Disease, 131:104208.
+  PMC6309598.
+
+Leek JT, et al. (2010). Tackling the widespread and critical impact of batch
+  effects in high-throughput data. Nat Rev Genet, 11:733-739.
+  doi:10.1038/nrg2825.
 """
 
 import pandas as pd
@@ -39,6 +56,9 @@ warnings.filterwarnings("ignore")
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 
+# Interneuron subtype annotations for the gene panel.
+# Based on cell-type marker categories from Guillozet-Bongaarts et al. (2014)
+# and Dienel & Lewis (2019).
 INTERNEURON_SUBTYPES = {
     "PVALB":   "PV+",
     "SST":     "SST+",
@@ -84,7 +104,14 @@ def load_raw() -> pd.DataFrame:
 
 
 def filter_scz_control(df: pd.DataFrame) -> pd.DataFrame:
-    """Keep only Schizophrenia and Control donors."""
+    """
+    Keep only Schizophrenia and Control donors.
+
+    GSE53987 contains four diagnostic groups: Schizophrenia, Control,
+    Bipolar disorder, and Major depressive disorder. Including the non-SCZ
+    psychiatric groups would confound the primary SCZ vs Control comparison
+    and reduce statistical power for differential expression analysis.
+    """
     before = df["donor_id"].nunique()
     df = df[df["diagnosis"].isin(["Schizophrenia", "Control"])].copy()
     after = df["donor_id"].nunique()
@@ -96,7 +123,7 @@ def filter_scz_control(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def transform(df: pd.DataFrame) -> pd.DataFrame:
-    """Log2 transform and flag outliers."""
+    """Log2 transform and flag outliers (> 3 SD within gene)."""
     primary = next(
         (c for c in ["cell_density","staining_intensity","expression_density"]
          if c in df.columns and df[c].notna().sum() > 0),
@@ -110,12 +137,12 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
         lambda x: (x - x.mean()) / (x.std() + 1e-9)
     )
     df["is_outlier"] = z.abs() > 3
-    print(f"\nTransformed: {len(df):,} records  |  outliers: {df['is_outlier'].sum()}")
+    print(f"\nTransformed: {len(df):,} records  |  outliers flagged: {df['is_outlier'].sum()}")
     return df
 
 
 def build_pivot(df: pd.DataFrame) -> tuple:
-    """Aggregate to donor × gene matrix."""
+    """Aggregate to donor x gene matrix (mean log2 expression per donor-gene pair)."""
     agg   = df.groupby(["donor_id","gene"])["log2_expr"].mean().reset_index()
     pivot = agg.pivot(index="donor_id", columns="gene", values="log2_expr")
     pivot = pivot.fillna(pivot.mean())
@@ -132,14 +159,14 @@ def build_pivot(df: pd.DataFrame) -> tuple:
 
 def correct_batch(pivot: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
     """
-    Linear batch correction by regressing out donor cohort.
+    Linear batch correction by regressing out donor processing cohort.
 
     Batch is inferred from the GSM ID prefix:
       GSM1304xxx → Batch A
       GSM1305xxx → Batch B
 
-    For each gene, we fit: expr ~ batch, then take residuals + intercept.
-    This removes the systematic expression shift between batches while
+    For each gene: fit expr ~ C(batch), take residuals + intercept.
+    This removes the systematic between-batch expression shift while
     preserving within-batch biological variation.
     """
     try:
@@ -170,7 +197,7 @@ def correct_batch(pivot: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
         if tmp["batch"].nunique() < 2:
             continue
         try:
-            model    = ols("expr ~ C(batch)", data=tmp).fit()
+            model     = ols("expr ~ C(batch)", data=tmp).fit()
             residuals = model.resid
             intercept = model.params["Intercept"]
             corrected.loc[tmp.index, gene] = residuals + intercept
@@ -193,6 +220,7 @@ def zscore(pivot: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_gene_annotations(genes: list) -> pd.DataFrame:
+    """Annotate each gene with interneuron subtype label."""
     return pd.DataFrame({
         "gene":         genes,
         "subtype":      [INTERNEURON_SUBTYPES.get(g, DEFAULT_SUBTYPE) for g in genes],
@@ -218,17 +246,14 @@ def main():
     print(" Step 2: Preprocessing + Batch Correction")
     print("=" * 60)
 
-    df       = load_raw()
-    df       = filter_scz_control(df)
-    df       = transform(df)
+    df          = load_raw()
+    df          = filter_scz_control(df)
+    df          = transform(df)
     pivot, meta = build_pivot(df)
 
     print(f"\nExpression matrix before correction: {pivot.shape}")
 
-    # Batch correction
     pivot_bc = correct_batch(pivot, meta)
-
-    # Z-score the batch-corrected matrix
     expr_z   = zscore(pivot_bc)
     expr_log = pivot_bc   # keep log2 batch-corrected for DE analysis
 

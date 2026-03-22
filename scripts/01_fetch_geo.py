@@ -4,26 +4,53 @@
 Downloads postmortem DLPFC gene expression data from NCBI GEO.
 
 Dataset: GSE53987
-  Postmortem DLPFC, schizophrenia vs matched controls
-  Affymetrix HG-U133 Plus 2.0 microarray
-  Mistry M, et al. BMC Neuroscience (2013)
-  https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE53987
+  Tissue:    Postmortem prefrontal cortex (Brodmann Area 46), striatum, hippocampus
+  Platform:  GPL570 — Affymetrix Human Genome U133 Plus 2.0 Array
+  Groups:    Schizophrenia, bipolar disorder, major depressive disorder, controls
+  Reference: Lanz TA, et al. Translational Psychiatry (2019). PMID: 31123247
+  URL:       https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE53987
 
 This script downloads via HTTPS (not FTP) to avoid connection drop issues,
 and parses the SOFT file directly rather than relying on GEOparse's downloader.
+GEOparse was attempted first but its FTP downloader produced incomplete files
+due to connection timeouts; HTTPS via requests is more reliable.
+
+This analysis uses only the prefrontal cortex schizophrenia and control samples.
+Bipolar disorder and major depressive disorder samples are excluded in
+02_preprocess.py.
+
+Gene panel note
+---------------
+TARGET_GENES below lists the 58-gene panel from Guillozet-Bongaarts et al. (2014),
+which this project was designed to replicate computationally. Not all genes are
+present on the GPL570 platform — genes absent from the platform (including CHRNA7
+and PRODH) will be reported as "Not in platform" at runtime and excluded from
+analysis. 48 of the 58 target genes were found on the platform.
 
 Usage
 -----
-  # First delete any bad cached files:
+  # Delete any incomplete cached files before first run:
   rm -rf data/geo_cache/
 
   python scripts/01_fetch_geo.py
 
 Outputs
 -------
-  data/allen_scz_raw.csv        Long-format expression (for pipeline)
+  data/allen_scz_raw.csv        Long-format expression (primary input for pipeline)
   data/geo_expression_wide.csv  Wide matrix (genes x donors)
   data/geo_metadata.csv         Sample metadata
+
+References
+----------
+Lanz TA, Reinhart V, Sheehan MJ, Rizzo SJS, et al. (2019). Postmortem
+  transcriptional profiling reveals widespread increase in inflammation in
+  schizophrenia. Translational Psychiatry, 9(1):151.
+  doi:10.1038/s41398-019-0494-6. PMID: 31123247. GEO: GSE53987.
+
+Guillozet-Bongaarts AL, Hyde TM, Dalley RA, et al. (2014). Altered gene
+  expression in the dorsolateral prefrontal cortex of individuals with
+  schizophrenia. Molecular Psychiatry, 19(4):478-485.
+  doi:10.1038/mp.2013.30. PMID: 23528911.
 """
 
 import sys
@@ -33,7 +60,6 @@ import requests
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from io import StringIO
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 CACHE_DIR = DATA_DIR / "geo_cache"
@@ -48,6 +74,9 @@ SOFT_URL = (
 SOFT_PATH = CACHE_DIR / "GSE53987_family.soft.gz"
 SOFT_TEXT  = CACHE_DIR / "GSE53987_family.soft"
 
+# Target genes from the 58-gene panel of Guillozet-Bongaarts et al. (2014).
+# Note: some genes (e.g. CHRNA7, PRODH) are absent from the GPL570 platform
+# and will be reported as "Not in platform" at runtime. 48 of 58 were found.
 TARGET_GENES = [
     "GAD1","GAD2","PVALB","SST","NPY","VIP","CALB1","CALB2","RELN",
     "PENK","DISC1","BDNF","COMT","NR4A2","RGS4","MBP","DLG4","AKT1",
@@ -90,7 +119,8 @@ def download_soft():
                 if total:
                     pct = downloaded / total * 100
                     mb  = downloaded / 1e6
-                    print(f"\r  {mb:.1f} MB / {total/1e6:.1f} MB  ({pct:.0f}%)", end="", flush=True)
+                    print(f"\r  {mb:.1f} MB / {total/1e6:.1f} MB  ({pct:.0f}%)",
+                          end="", flush=True)
     print(f"\n  Download complete: {SOFT_PATH.stat().st_size / 1e6:.1f} MB")
 
     print("  Decompressing...")
@@ -103,9 +133,9 @@ def download_soft():
 def parse_soft() -> tuple:
     """
     Parse the GEO SOFT file into:
-      - metadata dict  {sample_id -> {key -> value}}
+      - metadata dict   {sample_id -> {key -> value}}
       - expression dict {sample_id -> {probe_id -> value}}
-      - platform annotation {probe_id -> gene_symbol}
+      - platform dict   {probe_id  -> gene_symbol}
     """
     print("\nParsing SOFT file...")
 
@@ -113,12 +143,12 @@ def parse_soft() -> tuple:
     expression = {}   # sample_id -> {probe: value}
     platform   = {}   # probe_id  -> gene_symbol
 
-    current_sample   = None
-    current_platform = None
-    in_sample_table  = False
+    current_sample    = None
+    current_platform  = None
+    in_sample_table   = False
     in_platform_table = False
-    platform_header  = []
-    sym_col_idx      = None
+    platform_header   = []
+    sym_col_idx       = None
 
     sym_candidates = [
         "Gene Symbol","GENE_SYMBOL","gene_symbol","Symbol",
@@ -222,13 +252,13 @@ def parse_soft() -> tuple:
 
 
 # ── Build expression matrix ───────────────────────────────────────────────────
-def build_matrix(
-    metadata: dict,
-    expression: dict,
-    platform: dict,
-) -> tuple:
-    """Build gene-level expression matrix and metadata DataFrame."""
+def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
+    """
+    Build gene-level expression matrix and sample metadata DataFrame.
 
+    For genes with multiple probes, the probe with highest mean expression
+    across all samples is selected (a standard approach for Affymetrix data).
+    """
     # ── Metadata DataFrame ────────────────────────────────────────────────
     meta_rows = []
     for sample_id, m in metadata.items():
@@ -296,7 +326,6 @@ def build_matrix(
     # ── Expression matrix ─────────────────────────────────────────────────
     # Map probe IDs to gene symbols, keep only target genes
     target_set = set(TARGET_GENES)
-    # Build probe→gene for targets only
     target_probes = {
         probe: gene
         for probe, gene in platform.items()
@@ -307,7 +336,7 @@ def build_matrix(
     print(f"  Target probes mapped: {len(target_probes)}")
 
     # Collect expression values per gene across all samples
-    gene_probe_vals = {}  # gene -> {probe -> [values across samples]}
+    gene_probe_vals = {}  # gene -> {probe -> {sample_id -> value}}
     for sample_id, probe_vals in expression.items():
         if sample_id not in meta.index:
             continue
@@ -353,6 +382,7 @@ def build_matrix(
 
 # ── Reshape to long format ────────────────────────────────────────────────────
 def to_long(expr: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
+    """Reshape wide expression matrix to long format for downstream pipeline."""
     print("\nReshaping to long format...")
     long = (
         expr.reset_index()
@@ -389,7 +419,7 @@ def save(long: pd.DataFrame, wide: pd.DataFrame, meta: pd.DataFrame):
         deduped = long.drop_duplicates("donor_id")
         for k, v in deduped["diagnosis"].value_counts().items():
             print(f"  {k}: {v} donors")
-    print(f"\nDataset: {GEO_ACCESSION} — DLPFC SCZ vs Control (Mistry et al. 2013)")
+    print(f"\nDataset: {GEO_ACCESSION} — DLPFC SCZ vs Control (Lanz et al. 2019)")
     print(f"\nNext: python scripts/02_preprocess.py")
 
 
