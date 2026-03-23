@@ -462,7 +462,8 @@ def plot_cluster_validation(expr, meta):
             f'{row["Silhouette score"]:.3f}',
             (row["k"], row["Silhouette score"]),
             textcoords="offset points", xytext=(0, 8),
-            ha="center", fontsize=8, color="#2980B9"
+            ha="center", fontsize=8, color="#2980B9",
+            clip_on=False,
         )
     axes[0].set_xlabel("Number of clusters (k)", fontsize=11)
     axes[0].set_ylabel("Silhouette score", fontsize=11)
@@ -473,14 +474,26 @@ def plot_cluster_validation(expr, meta):
         axes[1].plot(df["k"], df["ARI vs diagnosis"], "o-",
                      color="#C1392B", lw=2, ms=8, zorder=3)
         axes[1].axhline(0, color="#AAAAAA", lw=0.8, ls="--")
+        ari_min = df["ARI vs diagnosis"].min()
+        ari_max = df["ARI vs diagnosis"].max()
         for _, row in df.iterrows():
             if row["ARI vs diagnosis"] is not None:
+                a = row["ARI vs diagnosis"]
+                if a == ari_min:
+                    x_offset, y_offset, ha = 0, -14, "center"   # below dot
+                elif a == ari_max:
+                    x_offset, y_offset, ha = 12, 0, "left"      # right of dot
+                else:
+                    x_offset, y_offset, ha = 0, 10, "center"    # above dot
                 axes[1].annotate(
-                    f'{row["ARI vs diagnosis"]:.3f}',
-                    (row["k"], row["ARI vs diagnosis"]),
-                    textcoords="offset points", xytext=(0, 8),
-                    ha="center", fontsize=8, color="#C1392B"
+                    f'{a:.3f}',
+                    (row["k"], a),
+                    textcoords="offset points", xytext=(x_offset, y_offset),
+                    ha=ha, fontsize=8, color="#C1392B",
+                    clip_on=False,
                 )
+        ymin, ymax = axes[1].get_ylim()
+        axes[1].set_ylim(ymin - abs(ymin) * 0.8, ymax)
         axes[1].set_xlabel("Number of clusters (k)", fontsize=11)
         axes[1].set_ylabel("Adjusted Rand Index", fontsize=11)
         axes[1].set_title("External validity vs diagnosis\n(1.0 = perfect, 0 = random)",
@@ -490,7 +503,6 @@ def plot_cluster_validation(expr, meta):
     plt.tight_layout()
     fig.savefig(FIG_DIR / "fig5_cluster_validation.png", bbox_inches="tight")
     plt.close()
-
 
 def main():
     print("=" * 55)
