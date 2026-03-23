@@ -252,17 +252,13 @@ def plot_fc_barplot(de, genes):
     """
     print("\n── Fig 7: FC bar chart ──────────────────────────────────")
     g2s = dict(zip(genes["gene"], genes["subtype"]))
-
     top = (de.reindex(de["log2fc"].abs().sort_values(ascending=False).index)
              .head(20)
              .sort_values("log2fc"))
-
     colors      = [SCZ_COLOR if fc > 0 else CTRL_COLOR for fc in top["log2fc"]]
     edge_colors = ["black" if s else "none" for s in top["significant"]]
-
     fig, ax = plt.subplots(figsize=(10, 9))
     fig.subplots_adjust(right=0.72)
-
     ax.barh(
         range(len(top)), top["log2fc"].values,
         color=colors, alpha=0.82,
@@ -271,22 +267,18 @@ def plot_fc_barplot(de, genes):
     )
     ax.set_yticks(range(len(top)))
     ax.set_yticklabels(top["gene"].values, fontsize=9)
-
     for tick, gene in zip(ax.get_yticklabels(), top["gene"].values):
         tick.set_color(SUBTYPE_COLORS.get(g2s.get(gene, ""), "#333333"))
         tick.set_fontweight("bold")
-
     ax.axvline(0, color="black", lw=0.9)
     ax.axvline( MIN_FC, color="#CCCCCC", lw=0.7, ls="--", alpha=0.7)
     ax.axvline(-MIN_FC, color="#CCCCCC", lw=0.7, ls="--", alpha=0.7)
-
     for i, (_, row) in enumerate(top.iterrows()):
         if row["significant"]:
             x_star = row["log2fc"] + (0.005 if row["log2fc"] > 0 else -0.005)
             ha_star = "left" if row["log2fc"] > 0 else "right"
             ax.text(x_star, i, " ★", va="center", ha=ha_star,
                     fontsize=11, color="black")
-
     x_pval = ax.get_xlim()[1] * 1.05
     for i, (_, row) in enumerate(top.iterrows()):
         style = "bold" if row["significant"] else "normal"
@@ -295,32 +287,32 @@ def plot_fc_barplot(de, genes):
                 va="center", ha="left", fontsize=8,
                 fontweight=style, color=color,
                 transform=ax.transData, clip_on=False)
-
     ax.set_xlabel("log₂ Fold Change  (Schizophrenia − Control)", fontsize=11)
     ax.set_title(
         "Top 20 Genes by Effect Size — DLPFC\n"
         "★ = significant after FDR correction  |  Gene colour = subtype",
         fontsize=11
     )
-
-    dir_patches = [
-        mpatches.Patch(color=SCZ_COLOR,  label="Higher in Schizophrenia"),
-        mpatches.Patch(color=CTRL_COLOR, label="Lower in Schizophrenia"),
-    ]
     present = {g2s.get(g, "") for g in top["gene"].values}
     sub_patches = [mpatches.Patch(color=v, label=k)
                    for k, v in SUBTYPE_COLORS.items()
                    if k in present and k != "SCZ candidate"]
-
-    ax.legend(handles=dir_patches, loc="lower right",
-              frameon=True, edgecolor="#CCCCCC", fontsize=8)
+    dir_patches = [
+        mpatches.Patch(color=SCZ_COLOR,  label="Higher in Schizophrenia"),
+        mpatches.Patch(color=CTRL_COLOR, label="Lower in Schizophrenia"),
+    ]
     ax.figure.legend(
         handles=sub_patches,
         loc="upper right", bbox_to_anchor=(1.0, 0.88),
         title="Subtype", title_fontsize=8,
         frameon=True, edgecolor="#CCCCCC", fontsize=8
     )
-
+    ax.figure.legend(
+        handles=dir_patches,
+        loc="upper right", bbox_to_anchor=(1.0, 0.70),
+        title="Direction", title_fontsize=8,
+        frameon=True, edgecolor="#CCCCCC", fontsize=8
+    )
     fig.savefig(FIG_DIR / "fig7_barplot_fc.png", bbox_inches="tight")
     plt.close()
     print("  Saved → fig7_barplot_fc.png")
