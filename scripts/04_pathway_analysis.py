@@ -236,7 +236,7 @@ def plot_volcano(de, genes):
                 for k, v in SUBTYPE_COLORS.items() if k in present]
     ax.legend(handles=patches, title="Subtype", title_fontsize=8,
               frameon=True, edgecolor="#CCCCCC", fontsize=8,
-              loc="lower left", bbox_to_anchor=(0.01, 0.12))
+              loc="upper right", bbox_to_anchor=(0.01, 0.12))
 
     fig.savefig(FIG_DIR / "fig6_volcano.png")
     plt.close()
