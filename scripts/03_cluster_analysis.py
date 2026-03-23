@@ -360,7 +360,7 @@ def plot_gene_heatmap(expr, meta, genes):
     if diag_s is not None:
         for j, d in enumerate(diag_s.values):
             col = SCZ_COLOR if d == "Schizophrenia" else CTRL_COLOR
-            ax_diag.add_patch(plt.Rectangle((j, 0), 1, 1, color=col, linewidth=0))
+            ax_diag.add_patch(plt.Rectangle((j - 0.5, 0), 1, 1, color=col, linewidth=0))
         n_ctrl = (diag_s == "Control").sum()
         n_scz  = (diag_s == "Schizophrenia").sum()
         ax_diag.text(n_ctrl / 2, 0.5, "Control",
@@ -369,7 +369,7 @@ def plot_gene_heatmap(expr, meta, genes):
         ax_diag.text(n_ctrl + n_scz / 2, 0.5, "Schizophrenia",
                      ha="center", va="center", fontsize=10,
                      color="white", fontweight="bold")
-    ax_diag.set_xlim(0, n_donors)
+    ax_diag.set_xlim(-0.5, n_donors - 0.5)
     ax_diag.set_ylim(0, 1)
     ax_diag.axis("off")
     ax_diag.set_title(
@@ -399,8 +399,14 @@ def plot_gene_heatmap(expr, meta, genes):
         n_ctrl = (diag_s == "Control").sum()
         ax_heat.axvline(n_ctrl - 0.5, color="black", lw=1.5, ls="--", alpha=0.7)
 
-    cb = fig.colorbar(im, ax=ax_heat, fraction=0.03, pad=0.01)
-    cb.set_label("z-score", fontsize=9)
+    fig.canvas.draw()
+    pos = ax_heat.get_position()
+    cbar_ax = fig.add_axes([pos.x1 + 0.072, pos.y0, 0.015, pos.height])
+    cb = fig.colorbar(im, cax=cbar_ax)
+    cb.set_ticks([-2, -1, 0, 1, 2])
+    cb.set_label("")
+    cb.ax.set_xlabel("z-score", fontsize=9, labelpad=6)
+    cb.ax.xaxis.set_label_position("bottom")
 
     # ── Subtype colour strip (right side) ──
     for j, gene in enumerate(expr_plot.index):
