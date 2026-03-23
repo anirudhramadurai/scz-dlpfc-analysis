@@ -178,22 +178,23 @@ def plot_volcano(de, genes):
 
     # Manual label offsets tuned to avoid overlaps
     LABEL_OFFSETS = {
-        "NPY":    (-45, -18),
-        "SST":    (-42,   6),
-        "PVALB":  ( 10,   6),
-        "PENK":   (-42,   6),
-        "GAD1":   ( 10,  -14),
-        "CALB2":  ( 10,   6),
-        "CNR1":   ( 10,  -28),
-        "PCP4":   (-42,  -14),
-        "RASGRF2":(-48,   6),
-        "SYNPR":  ( 10,   6),
-        "TAC1":   (-42,  -14),
-        "FEZ1":   ( 10,   6),
-        "SNCG":   ( 10, -14),
-        "NOS1AP": ( 10,   6),
-        "CLDN5":  (-42,   6),
+        "NPY":     (-45, -18),
+        "SST":     (-42,   6),
+        "PVALB":   ( 10,   6),
+        "PENK":    (-42,   6),
+        "GAD1":    ( 10, -14),
+        "CALB2":   ( 22,   6),
+        "CNR1":    (-42, -28),
+        "PCP4":    (-42,   6),
+        "RASGRF2": (-55, -14),
+        "SYNPR":   ( 10,   6),
+        "TAC1":    (-42, -14),
+        "FEZ1":    ( 10,   6),
+        "SNCG":    ( 10, -14),
+        "NOS1AP":  ( 10,   6),
+        "CLDN5":   (-42,   6),
     }
+
     for _, row in sig.iterrows():
         x0 = row["log2fc"]
         y0 = -np.log10(row["pval"] + 1e-10)
