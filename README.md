@@ -4,6 +4,12 @@
 
 ---
 
+## tl;dr
+
+Using publicly available postmortem brain microarray data (GSE53987, 48 schizophrenia vs. 55 control DLPFC samples), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. After detecting and correcting a processing batch effect, unsupervised clustering did not recover diagnosis (ARI near 0), consistent with the postmortem transcriptomics literature. However, co-expression analysis revealed that the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia — all markers co-vary as a single module — suggesting coordinated rather than subtype-specific dysregulation. Fifteen genes were significantly differentially expressed (FDR < 0.1), all GABAergic markers downregulated, with SST+ being the only significantly enriched interneuron subtype category. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
+
+---
+
 ## What is this project?
 
 This is an independent computational genomics project asking a specific question about schizophrenia at the molecular level: do the different subtypes of inhibitory neurons in the prefrontal cortex break down together or independently in the disease?
@@ -228,10 +234,15 @@ venv\Scripts\activate             # Windows
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Download data from NCBI GEO (75 MB, approximately 5 minutes)
-python scripts/01_fetch_geo.py
+# 4. Run the full pipeline with one command
+chmod +x run_all.sh
+./run_all.sh
+```
 
-# 5. Run the analysis pipeline in order
+Or run each step individually:
+
+```bash
+python scripts/01_fetch_geo.py     # Download data from NCBI GEO (~75 MB, ~5 min)
 python scripts/02_preprocess.py
 python scripts/03_cluster_analysis.py
 python scripts/04_pathway_analysis.py
@@ -241,15 +252,26 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 
 ---
 
-## Limitations
+## Limitations and Future Directions
+
+**Current limitations:**
 
 - Sample size (n = 103) limits statistical power, particularly after FDR correction over a small gene panel [7]
 - The 48-gene panel is curated and not unbiased; enrichment results reflect prior biological knowledge built into the gene selection [6]
 - 10 of the 58 target genes from Guillozet-Bongaarts et al. were absent from the GPL570 platform and could not be analysed [2]
-- Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates [5]
+- Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates in this dataset [5]
 - 75% of SCZ donors in the original Allen study had antipsychotic evidence at time of death; the degree to which medication confounds expression differences cannot be determined [2]
 - ORA was conducted against manually curated subtype labels only, not against external pathway databases (KEGG, GO, Reactome) [6]
+- Microarray measures relative RNA abundance across thousands of probes simultaneously but lacks the sensitivity of RNA-seq for lowly expressed genes
 - Results are correlational; no causal inference is possible from observational postmortem data
+
+**Future directions:**
+
+- Apply the same pipeline to RNA-seq schizophrenia datasets (e.g. CommonMind Consortium, PsychENCODE) to test whether findings replicate with a more sensitive assay
+- Incorporate age, PMI, RIN, and medication history as explicit covariates in the linear model if datasets with richer metadata are used
+- Extend pathway enrichment to test against GO biological process terms and published cell-type signature gene sets (e.g. from single-cell RNA-seq atlas data)
+- Compare co-expression structure across multiple psychiatric diagnoses (bipolar disorder, MDD) present in GSE53987 to assess specificity of the schizophrenia co-expression collapse
+- Apply weighted gene co-expression network analysis (WGCNA) to identify modules associated with diagnosis rather than testing genes individually
 
 ---
 
@@ -279,4 +301,4 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 
 ## Acknowledgements
 
-Developed as an independent project, drawing on methods from BIME 534 (Biology & Informatics, University of Washington). Data from NCBI Gene Expression Omnibus. Allen Human Brain Atlas at human.brain-map.org, produced by the Allen Institute for Brain Science.
+Developed as an independent project, drawing on methods from BIME 534 (Biology & Informatics, University of Washington). This project was inspired by concepts from that course, especially reproducible analysis of public high-throughput datasets and translational interpretation of omics results. Data from NCBI Gene Expression Omnibus. Allen Human Brain Atlas at human.brain-map.org, produced by the Allen Institute for Brain Science.
