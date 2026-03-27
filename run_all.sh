@@ -1,6 +1,5 @@
 #!/bin/bash
 # run_all.sh
-# ----------
 # Runs the full scz-dlpfc-analysis pipeline in order.
 # Run this from the root of the repository after activating your virtual environment.
 #
