@@ -1,10 +1,8 @@
 """
 02_preprocess.py
-================
 Cleans, batch-corrects, and normalizes GEO expression data.
 
-Key steps
----------
+Key steps:
 1. Filter to Schizophrenia and Control donors only
    (GSE53987 also contains bipolar disorder and MDD donors, excluded here)
 2. Detect and correct processing batch (GSM ID prefix-based)
@@ -13,8 +11,7 @@ Key steps
 5. Z-score normalize across donors per gene
 6. Annotate genes with interneuron subtype labels
 
-Batch correction rationale
---------------------------
+Batch correction rationale:
 PCA and hierarchical clustering of the raw data show that PC1 (42% of variance)
 and the dominant cluster split correspond to GSM1304xxx vs GSM1305xxx sample ID
 prefixes, indicating a technical batch effect from two processing cohorts. This
@@ -28,8 +25,7 @@ biological variation, following Leek et al. (2010).
 Note: explicit covariates (RIN, PMI, medication) were not available in this
 dataset; batch is inferred from sample ID prefix only.
 
-References
-----------
+References:
 Guillozet-Bongaarts AL, et al. (2014). Altered gene expression in the
   dorsolateral prefrontal cortex of individuals with schizophrenia.
   Molecular Psychiatry, 19(4):478-485. doi:10.1038/mp.2013.30. PMID: 23528911.
@@ -60,37 +56,37 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 # Based on cell-type marker categories from Guillozet-Bongaarts et al. (2014)
 # and Dienel & Lewis (2019).
 INTERNEURON_SUBTYPES = {
-    "PVALB":   "PV+",
-    "SST":     "SST+",
-    "NPY":     "SST+",
-    "PENK":    "SST+",
-    "VIP":     "VIP+",
-    "CALB2":   "VIP+",
-    "CALB1":   "CB+",
-    "GAD1":    "Pan-GABA",
-    "GAD2":    "Pan-GABA",
-    "CAMK2A":  "Excitatory",
+    "PVALB": "PV+",
+    "SST": "SST+",
+    "NPY": "SST+",
+    "PENK": "SST+",
+    "VIP": "VIP+",
+    "CALB2": "VIP+",
+    "CALB1": "CB+",
+    "GAD1": "Pan-GABA",
+    "GAD2": "Pan-GABA",
+    "CAMK2A": "Excitatory",
     "SLC17A7": "Excitatory",
-    "CUX2":    "Excitatory",
-    "RORB":    "Excitatory",
-    "MBP":     "Oligodendrocyte",
-    "CNP":     "Oligodendrocyte",
-    "DLG4":    "Synaptic",
-    "VAMP1":   "Synaptic",
-    "AKT1":    "Risk/Signaling",
-    "COMT":    "Risk/Signaling",
-    "DISC1":   "Risk/Signaling",
-    "BDNF":    "Risk/Signaling",
-    "NR4A2":   "Risk/Signaling",
-    "RGS4":    "Risk/Signaling",
-    "RELN":    "Risk/Signaling",
-    "KCNH2":   "Risk/Signaling",
-    "CNR1":    "Risk/Signaling",
+    "CUX2": "Excitatory",
+    "RORB": "Excitatory",
+    "MBP": "Oligodendrocyte",
+    "CNP": "Oligodendrocyte",
+    "DLG4": "Synaptic",
+    "VAMP1": "Synaptic",
+    "AKT1": "Risk/Signaling",
+    "COMT": "Risk/Signaling",
+    "DISC1": "Risk/Signaling",
+    "BDNF": "Risk/Signaling",
+    "NR4A2": "Risk/Signaling",
+    "RGS4": "Risk/Signaling",
+    "RELN": "Risk/Signaling",
+    "KCNH2": "Risk/Signaling",
+    "CNR1": "Risk/Signaling",
     "PPP1R1B": "Risk/Signaling",
-    "ERBB4":   "Risk/Signaling",
-    "ERBB3":   "Risk/Signaling",
+    "ERBB4": "Risk/Signaling",
+    "ERBB3": "Risk/Signaling",
 }
-DEFAULT_SUBTYPE    = "SCZ candidate"
+DEFAULT_SUBTYPE = "SCZ candidate"
 GABAERGIC_SUBTYPES = {"PV+", "SST+", "VIP+", "CB+", "Pan-GABA"}
 
 
@@ -115,9 +111,9 @@ def filter_scz_control(df: pd.DataFrame) -> pd.DataFrame:
     before = df["donor_id"].nunique()
     df = df[df["diagnosis"].isin(["Schizophrenia", "Control"])].copy()
     after = df["donor_id"].nunique()
-    n_scz  = df[df["diagnosis"] == "Schizophrenia"]["donor_id"].nunique()
+    n_scz = df[df["diagnosis"] == "Schizophrenia"]["donor_id"].nunique()
     n_ctrl = df[df["diagnosis"] == "Control"]["donor_id"].nunique()
-    print(f"\nFiltered to SCZ + Control: {before} → {after} donors")
+    print(f"\nFiltered to SCZ + Control: {before} -> {after} donors")
     print(f"  SCZ: {n_scz}   Control: {n_ctrl}")
     return df
 
@@ -143,7 +139,7 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
 
 def build_pivot(df: pd.DataFrame) -> tuple:
     """Aggregate to donor x gene matrix (mean log2 expression per donor-gene pair)."""
-    agg   = df.groupby(["donor_id","gene"])["log2_expr"].mean().reset_index()
+    agg = df.groupby(["donor_id","gene"])["log2_expr"].mean().reset_index()
     pivot = agg.pivot(index="donor_id", columns="gene", values="log2_expr")
     pivot = pivot.fillna(pivot.mean())
 
@@ -172,7 +168,7 @@ def correct_batch(pivot: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
     try:
         from statsmodels.formula.api import ols
     except ImportError:
-        print("  statsmodels not installed — skipping batch correction")
+        print("  statsmodels not installed - skipping batch correction")
         print("  Run: pip install statsmodels")
         return pivot
 
@@ -187,7 +183,7 @@ def correct_batch(pivot: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
     print(f"  Batch B (GSM1305): {counts.get('B', 0)} donors")
 
     if counts.nunique() == 1 or len(counts) < 2:
-        print("  Only one batch detected — skipping correction")
+        print("  Only one batch detected - skipping correction")
         return pivot
 
     corrected = pivot.copy()
@@ -197,7 +193,7 @@ def correct_batch(pivot: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
         if tmp["batch"].nunique() < 2:
             continue
         try:
-            model     = ols("expr ~ C(batch)", data=tmp).fit()
+            model = ols("expr ~ C(batch)", data=tmp).fit()
             residuals = model.resid
             intercept = model.params["Intercept"]
             corrected.loc[tmp.index, gene] = residuals + intercept
@@ -222,8 +218,8 @@ def zscore(pivot: pd.DataFrame) -> pd.DataFrame:
 def build_gene_annotations(genes: list) -> pd.DataFrame:
     """Annotate each gene with interneuron subtype label."""
     return pd.DataFrame({
-        "gene":         genes,
-        "subtype":      [INTERNEURON_SUBTYPES.get(g, DEFAULT_SUBTYPE) for g in genes],
+        "gene": genes,
+        "subtype": [INTERNEURON_SUBTYPES.get(g, DEFAULT_SUBTYPE) for g in genes],
         "is_gabaergic": [INTERNEURON_SUBTYPES.get(g,"") in GABAERGIC_SUBTYPES
                          for g in genes],
     })
@@ -246,15 +242,15 @@ def main():
     print(" Step 2: Preprocessing + Batch Correction")
     print("=" * 60)
 
-    df          = load_raw()
-    df          = filter_scz_control(df)
-    df          = transform(df)
+    df = load_raw()
+    df = filter_scz_control(df)
+    df = transform(df)
     pivot, meta = build_pivot(df)
 
     print(f"\nExpression matrix before correction: {pivot.shape}")
 
     pivot_bc = correct_batch(pivot, meta)
-    expr_z   = zscore(pivot_bc)
+    expr_z = zscore(pivot_bc)
     expr_log = pivot_bc   # keep log2 batch-corrected for DE analysis
 
     gene_annot = build_gene_annotations(list(expr_z.columns))

@@ -1,6 +1,5 @@
 """
 01_fetch_geo.py
-===============
 Downloads postmortem DLPFC gene expression data from NCBI GEO.
 
 Dataset: GSE53987
@@ -87,7 +86,7 @@ TARGET_GENES = [
 ]
 
 
-# ── Download via HTTPS ────────────────────────────────────────────────────────
+# Download via HTTPS
 def download_soft():
     """Download the SOFT file via HTTPS with a progress bar."""
     if SOFT_TEXT.exists():
@@ -129,7 +128,7 @@ def download_soft():
     print(f"  Decompressed: {SOFT_TEXT.stat().st_size / 1e6:.1f} MB")
 
 
-# ── Parse SOFT file ───────────────────────────────────────────────────────────
+# Parse SOFT file
 def parse_soft() -> tuple:
     """
     Parse the GEO SOFT file into:
@@ -139,16 +138,16 @@ def parse_soft() -> tuple:
     """
     print("\nParsing SOFT file...")
 
-    metadata   = {}   # sample_id -> {key: value}
-    expression = {}   # sample_id -> {probe: value}
-    platform   = {}   # probe_id  -> gene_symbol
+    metadata = {}   # sample_id -> {key: value}
+    expression = {}  # sample_id -> {probe: value}
+    platform = {}   # probe_id -> gene_symbol
 
-    current_sample    = None
-    current_platform  = None
-    in_sample_table   = False
+    current_sample = None
+    current_platform = None
+    in_sample_table = False
     in_platform_table = False
-    platform_header   = []
-    sym_col_idx       = None
+    platform_header = []
+    sym_col_idx = None
 
     sym_candidates = [
         "Gene Symbol","GENE_SYMBOL","gene_symbol","Symbol",
@@ -159,7 +158,7 @@ def parse_soft() -> tuple:
         for line in f:
             line = line.rstrip("\n")
 
-            # ── Section markers ────────────────────────────────────────────
+            # Section markers
             if line.startswith("^SAMPLE"):
                 current_sample = line.split("=", 1)[1].strip()
                 metadata[current_sample] = {}
@@ -171,7 +170,7 @@ def parse_soft() -> tuple:
                 in_platform_table = False
                 continue
 
-            # ── Platform table (probe → gene mapping) ─────────────────────
+            # Platform table (probe -> gene mapping)
             if line == "!platform_table_begin":
                 in_platform_table = True
                 platform_header = []
@@ -197,13 +196,13 @@ def parse_soft() -> tuple:
                     probe_id = parts[0].strip()
                     gene_sym = parts[sym_col_idx].strip()
                     if gene_sym and probe_id:
-                        # Handle "GENE1 /// GENE2" — take first
+                        # Handle "GENE1 /// GENE2" - take first
                         gene_sym = gene_sym.split("///")[0].strip().upper()
                         if gene_sym:
                             platform[probe_id] = gene_sym
                 continue
 
-            # ── Sample table (expression values) ──────────────────────────
+            # Sample table (expression values)
             if line == "!sample_table_begin":
                 in_sample_table = True
                 if current_sample not in expression:
@@ -223,7 +222,7 @@ def parse_soft() -> tuple:
                         pass
                 continue
 
-            # ── Sample metadata ────────────────────────────────────────────
+            # Sample metadata
             if (current_sample and
                     line.startswith("!Sample_") and
                     not in_sample_table):
@@ -251,7 +250,7 @@ def parse_soft() -> tuple:
     return metadata, expression, platform
 
 
-# ── Build expression matrix ───────────────────────────────────────────────────
+# Build expression matrix
 def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
     """
     Build gene-level expression matrix and sample metadata DataFrame.
@@ -259,7 +258,7 @@ def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
     For genes with multiple probes, the probe with highest mean expression
     across all samples is selected (a standard approach for Affymetrix data).
     """
-    # ── Metadata DataFrame ────────────────────────────────────────────────
+    # Metadata DataFrame
     meta_rows = []
     for sample_id, m in metadata.items():
         row = {"sample_id": sample_id}
@@ -323,7 +322,7 @@ def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
 
     print(f"  Total samples in metadata: {len(meta)}")
 
-    # ── Expression matrix ─────────────────────────────────────────────────
+    # Expression matrix
     # Map probe IDs to gene symbols, keep only target genes
     target_set = set(TARGET_GENES)
     target_probes = {
@@ -352,7 +351,7 @@ def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
 
     # For each gene, pick the probe with highest mean expression
     sample_ids = list(meta.index)
-    gene_expr  = {}  # gene -> pd.Series indexed by sample_id
+    gene_expr = {}  # gene -> pd.Series indexed by sample_id
 
     for gene, probes in gene_probe_vals.items():
         best_probe = None
@@ -380,7 +379,7 @@ def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
     return expr_wide, meta
 
 
-# ── Reshape to long format ────────────────────────────────────────────────────
+# Reshape to long format
 def to_long(expr: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
     """Reshape wide expression matrix to long format for downstream pipeline."""
     print("\nReshaping to long format...")
@@ -403,7 +402,7 @@ def to_long(expr: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
     return long
 
 
-# ── Save ──────────────────────────────────────────────────────────────────────
+# Save outputs
 def save(long: pd.DataFrame, wide: pd.DataFrame, meta: pd.DataFrame):
     long.to_csv(DATA_DIR / "allen_scz_raw.csv",        index=False)
     wide.to_csv(DATA_DIR / "geo_expression_wide.csv")
@@ -419,14 +418,14 @@ def save(long: pd.DataFrame, wide: pd.DataFrame, meta: pd.DataFrame):
         deduped = long.drop_duplicates("donor_id")
         for k, v in deduped["diagnosis"].value_counts().items():
             print(f"  {k}: {v} donors")
-    print(f"\nDataset: {GEO_ACCESSION} — DLPFC SCZ vs Control (Lanz et al. 2019)")
+    print(f"\nDataset: {GEO_ACCESSION} - DLPFC SCZ vs Control (Lanz et al. 2019)")
     print(f"\nNext: python scripts/02_preprocess.py")
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# Main
 def main():
     print("=" * 60)
-    print(f" GEO Fetcher — {GEO_ACCESSION}")
+    print(f" GEO Fetcher - {GEO_ACCESSION}")
     print(f" DLPFC Schizophrenia vs Control")
     print("=" * 60)
 

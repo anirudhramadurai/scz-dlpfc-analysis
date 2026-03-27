@@ -1,12 +1,11 @@
 """
 03_cluster_analysis.py
-======================
 Hierarchical clustering, PCA, GABAergic co-expression, and cluster validation.
 
 Reads batch-corrected, z-scored expression data from 02_preprocess.py and
 produces five figures:
 
-  fig1_donor_dendrogram.png     Ward's linkage dendrogram of donors, coloured
+  fig1_donor_dendrogram.png     Ward's linkage dendrogram of donors, colored
                                 by diagnosis. CPCC, silhouette, and ARI vs
                                 diagnosis reported in title.
 
@@ -27,8 +26,7 @@ produces five figures:
   fig5_cluster_validation.png   Silhouette score and ARI vs diagnosis across
                                 k = 2 to 5 clusters.
 
-Cluster validation metrics
---------------------------
+Cluster validation metrics:
   CPCC (cophenetic correlation coefficient): measures how well the dendrogram
     preserves pairwise distances. >0.75 indicates good hierarchical structure.
 
@@ -36,13 +34,12 @@ Cluster validation metrics
     separation. Range [-1, 1]; higher is better.
 
   ARI (Adjusted Rand Index): measures agreement between cluster assignments
-    and true diagnosis labels. 1.0 = perfect, 0 = random. ARI ≈ 0 in this
+    and true diagnosis labels. 1.0 = perfect, 0 = random. ARI near 0 in this
     analysis is consistent with published postmortem brain transcriptomics
     literature, where technical and biological covariates typically dominate
     expression variance.
 
-References
-----------
+References:
 Guillozet-Bongaarts AL, et al. (2014). Altered gene expression in the
   dorsolateral prefrontal cortex of individuals with schizophrenia.
   Molecular Psychiatry, 19(4):478-485. doi:10.1038/mp.2013.30. PMID: 23528911.
@@ -72,23 +69,23 @@ import warnings
 warnings.filterwarnings("ignore")
 
 DATA_DIR = Path(__file__).parent.parent / "data"
-FIG_DIR  = Path(__file__).parent.parent / "figures"
+FIG_DIR = Path(__file__).parent.parent / "figures"
 FIG_DIR.mkdir(exist_ok=True)
 
-SCZ_COLOR  = "#C1392B"
+SCZ_COLOR = "#C1392B"
 CTRL_COLOR = "#2980B9"
 
 SUBTYPE_COLORS = {
-    "PV+":            "#7B2D8B",
-    "SST+":           "#2471A3",
-    "VIP+":           "#1E8449",
-    "CB+":            "#D4AC0D",
-    "Pan-GABA":       "#BA4A00",
-    "Excitatory":     "#7D3C98",
-    "Oligodendrocyte":"#566573",
+    "PV+": "#7B2D8B",
+    "SST+": "#2471A3",
+    "VIP+": "#1E8449",
+    "CB+": "#D4AC0D",
+    "Pan-GABA": "#BA4A00",
+    "Excitatory": "#7D3C98",
+    "Oligodendrocyte": "#566573",
     "Risk/Signaling": "#909497",
-    "Synaptic":       "#B2BABB",
-    "SCZ candidate":  "#D5D8DC",
+    "Synaptic": "#B2BABB",
+    "SCZ candidate": "#D5D8DC",
 }
 
 plt.rcParams.update({
@@ -105,19 +102,19 @@ plt.rcParams.update({
 
 
 def load():
-    expr  = pd.read_csv(DATA_DIR / "expression_matrix.csv",  index_col=0)
-    meta  = pd.read_csv(DATA_DIR / "donor_metadata.csv",     index_col=0)
+    expr = pd.read_csv(DATA_DIR / "expression_matrix.csv", index_col=0)
+    meta = pd.read_csv(DATA_DIR / "donor_metadata.csv", index_col=0)
     genes = pd.read_csv(DATA_DIR / "gene_annotations.csv")
-    meta  = meta.reindex(expr.index)
+    meta = meta.reindex(expr.index)
     print(f"Loaded: {expr.shape}  (donors x genes)")
     return expr, meta, genes
 
 
-# ── Fig 1: Dendrogram ─────────────────────────────────────────────────────────
+# Fig 1: Dendrogram
 def plot_dendrogram(expr, meta):
     """
     Ward's linkage hierarchical clustering of donors.
-    Colour bar below dendrogram shows diagnosis for each leaf.
+    Color bar below dendrogram shows diagnosis for each leaf.
     """
     print("  Fig 1: Dendrogram...")
     dist_vec = pdist(expr.values, metric="euclidean")
@@ -130,13 +127,13 @@ def plot_dendrogram(expr, meta):
     if "diagnosis" in meta.columns:
         diag = meta["diagnosis"].reindex(expr.index)
         true = (diag == "Schizophrenia").astype(int)
-        ari  = adjusted_rand_score(true.values, labels_2)
+        ari = adjusted_rand_score(true.values, labels_2)
 
-    # Two-panel: dendrogram on top, thin diagnosis colour bar below
+    # Two-panel: dendrogram on top, thin diagnosis color bar below
     fig = plt.figure(figsize=(14, 5.5))
-    gs  = gridspec.GridSpec(2, 1, height_ratios=[11, 1], hspace=0.04)
+    gs = gridspec.GridSpec(2, 1, height_ratios=[11, 1], hspace=0.04)
     ax_tree = fig.add_subplot(gs[0])
-    ax_bar  = fig.add_subplot(gs[1])
+    ax_bar = fig.add_subplot(gs[1])
 
     dn = dendrogram(
         Z, ax=ax_tree,
@@ -160,7 +157,7 @@ def plot_dendrogram(expr, meta):
 
         ax_bar.legend(
             handles=[
-                mpatches.Patch(color=SCZ_COLOR,  label="Schizophrenia"),
+                mpatches.Patch(color=SCZ_COLOR, label="Schizophrenia"),
                 mpatches.Patch(color=CTRL_COLOR, label="Control"),
             ],
             loc="lower center", ncol=2, bbox_to_anchor=(0.5, -1.8),
@@ -169,7 +166,7 @@ def plot_dendrogram(expr, meta):
 
     ari_str = f"  |  ARI vs diagnosis = {ari:.3f}" if ari is not None else ""
     ax_tree.set_title(
-        f"Hierarchical Clustering of Donors — Ward's Linkage, Euclidean Distance\n"
+        f"Hierarchical Clustering of Donors - Ward's Linkage, Euclidean Distance\n"
         f"CPCC = {cpcc:.3f}  |  Silhouette (k=2) = {sil:.3f}{ari_str}",
         fontsize=11, pad=8
     )
@@ -183,14 +180,14 @@ def plot_dendrogram(expr, meta):
     plt.close()
 
 
-# ── Fig 2: PCA ────────────────────────────────────────────────────────────────
+# Fig 2: PCA
 def plot_pca(expr, meta):
     """
     PCA of donor expression profiles.
     ARI from median split of PC1 tests whether PC1 separates diagnosis.
     """
     print("  Fig 2: PCA...")
-    pca    = PCA(n_components=2, random_state=42)
+    pca = PCA(n_components=2, random_state=42)
     coords = pca.fit_transform(expr.values)
     v1, v2 = pca.explained_variance_ratio_ * 100
 
@@ -217,8 +214,8 @@ def plot_pca(expr, meta):
 
     ax.axhline(0, color="#DDDDDD", lw=0.8)
     ax.axvline(0, color="#DDDDDD", lw=0.8)
-    ax.set_xlabel(f"PC1 — {v1:.1f}% of variance", fontsize=11)
-    ax.set_ylabel(f"PC2 — {v2:.1f}% of variance", fontsize=11)
+    ax.set_xlabel(f"PC1 - {v1:.1f}% of variance", fontsize=11)
+    ax.set_ylabel(f"PC2 - {v2:.1f}% of variance", fontsize=11)
     ax.set_title(
         "Principal Component Analysis of Donor Expression Profiles\n"
         "Does the 48-gene expression profile separate diagnosis?",
@@ -230,7 +227,7 @@ def plot_pca(expr, meta):
     plt.close()
 
 
-# ── Fig 3: GABAergic co-expression ────────────────────────────────────────────
+# Fig 3: GABAergic co-expression
 def plot_gabaergic_coexpression(expr, genes, meta):
     """
     Side-by-side Pearson correlation heatmaps for GABAergic markers,
@@ -244,7 +241,7 @@ def plot_gabaergic_coexpression(expr, genes, meta):
     gaba = genes[genes["is_gabaergic"]]["gene"].tolist()
     gaba = [g for g in gaba if g in expr.columns]
     if len(gaba) < 3:
-        print("  Not enough GABAergic markers — skipping")
+        print("  Not enough GABAergic markers - skipping")
         return
 
     gene_to_sub = dict(zip(genes["gene"], genes["subtype"]))
@@ -254,7 +251,7 @@ def plot_gabaergic_coexpression(expr, genes, meta):
 
     for ax, (diag, label, color) in zip(axes, [
         ("Schizophrenia", "Schizophrenia (n=48)", SCZ_COLOR),
-        ("Control",       "Control (n=55)",       CTRL_COLOR),
+        ("Control", "Control (n=55)", CTRL_COLOR),
     ]):
         if "diagnosis" in meta.columns:
             sub = expr[gaba].loc[meta["diagnosis"] == diag]
@@ -265,9 +262,9 @@ def plot_gabaergic_coexpression(expr, genes, meta):
             ax.set_title(f"Insufficient data ({diag})")
             continue
 
-        corr  = sub.corr(method="pearson")
+        corr = sub.corr(method="pearson")
         order = leaves_list(linkage(pdist(corr.values), method="ward"))
-        corr  = corr.iloc[order, order]
+        corr = corr.iloc[order, order]
 
         sns.heatmap(
             corr, ax=ax,
@@ -320,33 +317,33 @@ def plot_gabaergic_coexpression(expr, genes, meta):
     plt.close()
 
 
-# ── Fig 4: Gene heatmap ───────────────────────────────────────────────────────
+# Fig 4: Gene heatmap
 def plot_gene_heatmap(expr, meta, genes):
     """
     Expression heatmap with donors sorted by diagnosis (Control then SCZ)
-    and genes clustered by Ward's linkage. Gene labels coloured by subtype.
+    and genes clustered by Ward's linkage. Gene labels colored by subtype.
     """
     print("  Fig 4: Gene heatmap...")
     gene_to_sub = dict(zip(genes["gene"], genes["subtype"]))
 
     if "diagnosis" in meta.columns:
-        diag   = meta["diagnosis"].reindex(expr.index)
-        order  = diag.sort_values().index
+        diag = meta["diagnosis"].reindex(expr.index)
+        order = diag.sort_values().index
         expr_s = expr.loc[order]
         diag_s = diag.loc[order]
     else:
         expr_s = expr
         diag_s = None
 
-    Z_genes    = linkage(pdist(expr_s.T.values, metric="euclidean"), method="ward")
+    Z_genes = linkage(pdist(expr_s.T.values, metric="euclidean"), method="ward")
     gene_order = leaves_list(Z_genes)
-    expr_plot  = expr_s.T.iloc[gene_order]   # genes x donors
+    expr_plot = expr_s.T.iloc[gene_order]   # genes x donors
 
-    n_genes  = len(expr_plot)
+    n_genes = len(expr_plot)
     n_donors = len(expr_s)
 
     fig = plt.figure(figsize=(16, max(10, n_genes * 0.28)))
-    gs  = gridspec.GridSpec(
+    gs = gridspec.GridSpec(
         2, 2,
         height_ratios=[0.5, n_genes],
         width_ratios=[n_donors, 1],
@@ -354,15 +351,15 @@ def plot_gene_heatmap(expr, meta, genes):
     )
     ax_diag = fig.add_subplot(gs[0, 0])   # diagnosis bar
     ax_heat = fig.add_subplot(gs[1, 0])   # main heatmap
-    ax_sub  = fig.add_subplot(gs[1, 1])   # subtype colour strip
+    ax_sub = fig.add_subplot(gs[1, 1])    # subtype color strip
 
-    # ── Diagnosis bar ──
+    # Diagnosis bar
     if diag_s is not None:
         for j, d in enumerate(diag_s.values):
             col = SCZ_COLOR if d == "Schizophrenia" else CTRL_COLOR
             ax_diag.add_patch(plt.Rectangle((j - 0.5, 0), 1, 1, color=col, linewidth=0))
         n_ctrl = (diag_s == "Control").sum()
-        n_scz  = (diag_s == "Schizophrenia").sum()
+        n_scz = (diag_s == "Schizophrenia").sum()
         ax_diag.text(n_ctrl / 2, 0.5, "Control",
                      ha="center", va="center", fontsize=10,
                      color="white", fontweight="bold")
@@ -373,12 +370,12 @@ def plot_gene_heatmap(expr, meta, genes):
     ax_diag.set_ylim(0, 1)
     ax_diag.axis("off")
     ax_diag.set_title(
-        "Gene Expression Heatmap — Batch-Corrected, Z-Scored\n"
+        "Gene Expression Heatmap - Batch-Corrected, Z-Scored\n"
         "Donors sorted by diagnosis  |  Genes clustered by Ward's linkage",
         fontsize=11, pad=6
     )
 
-    # ── Main heatmap ──
+    # Main heatmap
     im = ax_heat.imshow(
         expr_plot.values,
         aspect="auto",
@@ -393,7 +390,7 @@ def plot_gene_heatmap(expr, meta, genes):
         tick.set_color(SUBTYPE_COLORS.get(gene_to_sub.get(gene, ""), "#333333"))
 
     ax_heat.set_xticks([])
-    ax_heat.set_xlabel("Donors  (← Control  |  Schizophrenia →)", fontsize=10)
+    ax_heat.set_xlabel("Donors  (<- Control  |  Schizophrenia ->)", fontsize=10)
 
     if diag_s is not None:
         n_ctrl = (diag_s == "Control").sum()
@@ -408,7 +405,7 @@ def plot_gene_heatmap(expr, meta, genes):
     cb.ax.set_xlabel("z-score", fontsize=9, labelpad=6)
     cb.ax.xaxis.set_label_position("bottom")
 
-    # ── Subtype colour strip (right side) ──
+    # Subtype color strip (right side)
     for j, gene in enumerate(expr_plot.index):
         col = SUBTYPE_COLORS.get(gene_to_sub.get(gene, ""), "#D5D8DC")
         ax_sub.add_patch(plt.Rectangle((0, j), 1, 1, color=col, linewidth=0))
@@ -430,7 +427,7 @@ def plot_gene_heatmap(expr, meta, genes):
     plt.close()
 
 
-# ── Fig 5: Cluster validation ─────────────────────────────────────────────────
+# Fig 5: Cluster validation
 def plot_cluster_validation(expr, meta):
     """
     Silhouette score (internal validity) and ARI vs diagnosis (external validity)
@@ -441,11 +438,11 @@ def plot_cluster_validation(expr, meta):
     rows = []
     for k in [2, 3, 4, 5]:
         labels = fcluster(Z, t=k, criterion="maxclust")
-        sil    = silhouette_score(expr.values, labels)
-        ari    = None
+        sil = silhouette_score(expr.values, labels)
+        ari = None
         if "diagnosis" in meta.columns:
             true = (meta["diagnosis"].reindex(expr.index) == "Schizophrenia").astype(int)
-            ari  = adjusted_rand_score(true.values, labels)
+            ari = adjusted_rand_score(true.values, labels)
         rows.append({"k": k, "Silhouette score": sil, "ARI vs diagnosis": ari})
 
     df = pd.DataFrame(rows)

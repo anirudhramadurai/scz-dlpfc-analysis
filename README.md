@@ -6,7 +6,7 @@
 
 ## tl;dr
 
-Using publicly available postmortem brain microarray data (GSE53987, 48 schizophrenia vs. 55 control DLPFC samples), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. After detecting and correcting a processing batch effect, unsupervised clustering did not recover diagnosis (ARI near 0), consistent with the postmortem transcriptomics literature. However, co-expression analysis revealed that the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia — all markers co-vary as a single module — suggesting coordinated rather than subtype-specific dysregulation. Fifteen genes were significantly differentially expressed (FDR < 0.1), all GABAergic markers downregulated, with SST+ being the only significantly enriched interneuron subtype category. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
+Using publicly available postmortem brain microarray data (GSE53987, 48 schizophrenia vs. 55 control DLPFC samples), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. After detecting and correcting a processing batch effect, unsupervised clustering did not recover diagnosis (ARI near 0), consistent with the postmortem transcriptomics literature. However, co-expression analysis revealed that the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia: all markers co-vary as a single module, suggesting coordinated rather than subtype-specific dysregulation. Fifteen genes were significantly differentially expressed (FDR < 0.1), all GABAergic markers downregulated, with SST+ being the only significantly enriched interneuron subtype category. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
 
 ---
 
@@ -24,9 +24,9 @@ The full pipeline runs in about 15 minutes on any laptop, from raw data download
 
 ### What is schizophrenia, and why the prefrontal cortex?
 
-Schizophrenia is a serious psychiatric disorder affecting about 1% of the global population [1]. It is characterised by three categories of symptoms:
+Schizophrenia is a serious psychiatric disorder affecting about 1% of the global population [1]. It is characterized by three categories of symptoms:
 
-- **Positive symptoms** (things that are added): hallucinations, delusions, disorganised thinking
+- **Positive symptoms** (things that are added): hallucinations, delusions, disorganized thinking
 - **Negative symptoms** (things that are reduced): blunted affect, loss of motivation, social withdrawal
 - **Cognitive symptoms**: impaired working memory, difficulty planning, reduced executive function
 
@@ -51,7 +51,7 @@ PV+ and SST+ interneurons both originate from the medial ganglionic eminence (MG
 
 Decades of postmortem studies consistently find reduced expression of GABAergic interneuron markers in the DLPFC of people with schizophrenia [1, 2, 10]. Key findings include:
 
-- Reduced **GAD1** (GAD67) mRNA, encoding the primary enzyme that synthesises GABA from glutamate. This is one of the most replicated molecular findings in schizophrenia research [1, 2].
+- Reduced **GAD1** (GAD67) mRNA, encoding the primary enzyme that synthesizes GABA from glutamate. This is one of the most replicated molecular findings in schizophrenia research [1, 2].
 - Reduced **PVALB** (parvalbumin) expression, particularly in the deep cortical layers [1, 2].
 - Reduced **SST** (somatostatin) mRNA, also highly replicated across independent cohorts [1, 2].
 - Importantly, the overall density of interneurons, measured by pan-interneuron markers such as GAD1 at the cellular level, is not reduced [2]. The problem appears to be a downregulation of gene expression within surviving cells, not cell death.
@@ -76,7 +76,7 @@ If PV+, SST+, and VIP+ interneurons are all affected in schizophrenia, does this
 
 Gene expression data were obtained from **NCBI GEO accession GSE53987** [3].
 
-GEO (Gene Expression Omnibus) is a public repository maintained by NCBI where researchers deposit their gene expression datasets so that anyone can download and reanalyse them freely [8]. This is the foundation of reproducible science in genomics.
+GEO (Gene Expression Omnibus) is a public repository maintained by NCBI where researchers deposit their gene expression datasets so that anyone can download and reanalyze them freely [8]. This is the foundation of reproducible science in genomics.
 
 | Field | Value |
 |---|---|
@@ -87,7 +87,7 @@ GEO (Gene Expression Omnibus) is a public repository maintained by NCBI where re
 | Total samples | 205 |
 | Used in this analysis | 48 SCZ + 55 Control PFC samples (n = 103) |
 
-The dataset uses **Affymetrix microarrays**, a technology that measures the expression level of thousands of genes simultaneously by hybridising labelled RNA to short DNA probes on a chip. Each probe has a known sequence that binds its complementary target RNA, and the fluorescence intensity of the resulting signal indicates how much of that RNA is present in the sample.
+The dataset uses **Affymetrix microarrays**, a technology that measures the expression level of thousands of genes simultaneously by hybridizing labeled RNA to short DNA probes on a chip. Each probe has a known sequence that binds its complementary target RNA, and the fluorescence intensity of the resulting signal indicates how much of that RNA is present in the sample.
 
 **Note on data source:** This project was originally designed around the Allen Brain Atlas Human ISH Schizophrenia Study (Guillozet-Bongaarts et al. 2014 [2]), which profiled 58 genes by in situ hybridization in DLPFC tissue from 19 SCZ donors and 33 controls. In situ hybridization (ISH) labels RNA directly within tissue sections, allowing you to see which cells express a gene and at what density. The Allen Brain Atlas ISH REST API is no longer operational. GSE53987 was selected as the replacement because it covers the same brain region, the same diagnostic comparison, and an overlapping gene set, with the additional advantage that Affymetrix microarray provides continuous quantitative signal across all probes simultaneously.
 
@@ -112,13 +112,13 @@ Four Python scripts run in sequence. Every output is fully reproducible from the
 Downloads the full GSE53987 SOFT file directly from NCBI via HTTPS. The SOFT (Simple Omnibus Format in Text) format is a plain-text file containing all sample metadata and expression values for the dataset [8]. A custom parser extracts expression values and maps Affymetrix probe IDs to gene symbols using the platform annotation table. For genes with multiple probes, the probe with the highest mean expression is selected.
 
 **Step 2: Preprocessing**
-Filters to schizophrenia and control donors only (bipolar disorder and MDD donors are present in the full dataset but excluded here). Applies linear batch correction, log2 transforms expression values, and z-score normalises per gene across donors.
+Filters to schizophrenia and control donors only (bipolar disorder and MDD donors are present in the full dataset but excluded here). Applies linear batch correction, log2 transforms expression values, and z-score normalizes per gene across donors.
 
-*Batch correction:* Before correcting, PCA of the raw data showed that the first principal component (explaining 42% of variance) corresponded to processing cohort (GSM1304xxx vs GSM1305xxx sample ID prefixes) rather than diagnosis. This is a technical artefact from samples being processed at different times, a common problem in multi-cohort postmortem datasets [5]. Linear regression was used to remove the systematic shift between cohorts while preserving within-cohort biological variation, following Leek et al. (2010) [5].
+*Batch correction:* Before correcting, PCA of the raw data showed that the first principal component (explaining 42% of variance) corresponded to processing cohort (GSM1304xxx vs GSM1305xxx sample ID prefixes) rather than diagnosis. This is a technical artifact from samples being processed at different times, a common problem in multi-cohort postmortem datasets [5]. Linear regression was used to remove the systematic shift between cohorts while preserving within-cohort biological variation, following Leek et al. (2010) [5].
 
 *Log2 transformation:* Microarray intensity values are right-skewed. Log2 transformation compresses the range and makes fold-changes interpretable: a difference of 1 unit on the log2 scale corresponds to a twofold change in expression.
 
-*Z-scoring:* Each gene is normalised to mean = 0 and standard deviation = 1 across all donors. This puts all genes on a common scale so that clustering is not dominated by highly expressed genes.
+*Z-scoring:* Each gene is normalized to mean = 0 and standard deviation = 1 across all donors. This puts all genes on a common scale so that clustering is not dominated by highly expressed genes.
 
 **Step 3: Cluster analysis**
 Applies Ward's linkage hierarchical clustering to donors, PCA, GABAergic co-expression matrices, and cluster validation metrics including silhouette score, Adjusted Rand Index, and cophenetic correlation coefficient [9].
@@ -136,9 +136,9 @@ Welch's t-test per gene with Benjamini-Hochberg FDR correction [7], followed by 
 
 ![Donor hierarchical clustering dendrogram](figures/fig1_donor_dendrogram.png)
 
-This dendrogram shows the result of hierarchical clustering of all 103 donors based solely on their gene expression profiles, with no knowledge of diagnosis. Each leaf at the bottom is one donor; the colour bar shows their actual diagnosis (red = schizophrenia, blue = control). The height at which two branches merge indicates how dissimilar those donors are.
+This dendrogram shows the result of hierarchical clustering of all 103 donors based solely on their gene expression profiles, with no knowledge of diagnosis. Each leaf at the bottom is one donor; the color bar shows their actual diagnosis (red = schizophrenia, blue = control). The height at which two branches merge indicates how dissimilar those donors are.
 
-If gene expression reliably distinguished schizophrenia from controls, we would expect two large clusters, one mostly red and one mostly blue. Instead, the colours are intermixed throughout. The Adjusted Rand Index (ARI = -0.008) quantifies this: ARI of 1.0 would mean perfect recovery of diagnosis; ARI near 0 means the clustering is no better than random with respect to diagnosis.
+If gene expression reliably distinguished schizophrenia from controls, we would expect two large clusters, one mostly red and one mostly blue. Instead, the colors are intermixed throughout. The Adjusted Rand Index (ARI = -0.008) quantifies this: ARI of 1.0 would mean perfect recovery of diagnosis; ARI near 0 means the clustering is no better than random with respect to diagnosis.
 
 This is consistent with a well-established finding in postmortem brain transcriptomics: technical variables (RNA quality, postmortem interval) and biological covariates (age, medication history) typically explain more expression variance than disease status [5]. Reporting this honestly is important. It is not a pipeline failure; it is an accurate result about the nature of the data.
 
@@ -158,7 +158,7 @@ Cluster validation across k = 2 to 5 clusters. The left panel shows silhouette s
 
 ![GABAergic interneuron co-expression: SCZ vs Control](figures/fig3_gabaergic_coexpression.png)
 
-This figure shows Pearson correlation matrices for all pairwise combinations of GABAergic interneuron markers, computed separately for schizophrenia donors (left) and control donors (right). Each cell shows the correlation coefficient between two genes across all donors in that group. Red = positive correlation (both genes tend to go up and down together); blue = negative correlation. Gene labels are coloured by subtype: purple = PV+, blue = SST+, green = VIP+, yellow = CB+, orange = Pan-GABA.
+This figure shows Pearson correlation matrices for all pairwise combinations of GABAergic interneuron markers, computed separately for schizophrenia donors (left) and control donors (right). Each cell shows the correlation coefficient between two genes across all donors in that group. Red = positive correlation (both genes tend to go up and down together); blue = negative correlation. Gene labels are colored by subtype: purple = PV+, blue = SST+, green = VIP+, yellow = CB+, orange = Pan-GABA.
 
 **In controls (right panel):** PVALB (purple, PV+) is relatively independent of the other markers. Its correlations with CALB1, NPY, and PENK range from roughly -0.30 to 0.35, close to zero. This makes biological sense: PV+ and SST+ interneurons serve distinct functional roles [1].
 
@@ -172,11 +172,11 @@ This figure shows Pearson correlation matrices for all pairwise combinations of 
 
 ![Gene expression heatmap](figures/fig4_gene_heatmap.png)
 
-This heatmap shows batch-corrected, z-scored expression for all 48 genes across all 103 donors. Donors are sorted by diagnosis (Control on the left, Schizophrenia on the right); the dashed vertical line marks the boundary. Genes are clustered by Ward's linkage. Gene labels are coloured by subtype. The colour of each cell represents the z-score: red = higher than average expression for that gene, blue = lower than average. A subtle but consistent shift toward blue in the SCZ half is visible for several GABAergic markers, particularly NPY, SST, PENK, PVALB, and GAD1.
+This heatmap shows batch-corrected, z-scored expression for all 48 genes across all 103 donors. Donors are sorted by diagnosis (Control on the left, Schizophrenia on the right); the dashed vertical line marks the boundary. Genes are clustered by Ward's linkage. Gene labels are colored by subtype. The color of each cell represents the z-score: red = higher than average expression for that gene, blue = lower than average. A subtle but consistent shift toward blue in the SCZ half is visible for several GABAergic markers, particularly NPY, SST, PENK, PVALB, and GAD1.
 
 ![Volcano plot](figures/fig6_volcano.png)
 
-A volcano plot is a standard visualisation for differential expression results. The x-axis shows the log2 fold-change (negative = lower in SCZ, positive = higher in SCZ). The y-axis shows -log10(p-value): higher points are more statistically significant. The dashed horizontal line marks the FDR threshold. Coloured points are significant; grey points did not pass the thresholds. Gene labels are coloured by subtype.
+A volcano plot is a standard visualization for differential expression results. The x-axis shows the log2 fold-change (negative = lower in SCZ, positive = higher in SCZ). The y-axis shows -log10(p-value): higher points are more statistically significant. The dashed horizontal line marks the FDR threshold. Colored points are significant; gray points did not pass the thresholds. Gene labels are colored by subtype.
 
 15 genes were significant at FDR < 0.1, |log2FC| >= 0.1 [7]. Every significant GABAergic marker is on the left (downregulated in schizophrenia). CLDN5, encoding claudin-5, a tight junction protein in blood-brain barrier endothelial cells, is the only significantly upregulated gene.
 
@@ -258,7 +258,7 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 
 - Sample size (n = 103) limits statistical power, particularly after FDR correction over a small gene panel [7]
 - The 48-gene panel is curated and not unbiased; enrichment results reflect prior biological knowledge built into the gene selection [6]
-- 10 of the 58 target genes from Guillozet-Bongaarts et al. were absent from the GPL570 platform and could not be analysed [2]
+- 10 of the 58 target genes from Guillozet-Bongaarts et al. were absent from the GPL570 platform and could not be analyzed [2]
 - Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates in this dataset [5]
 - 75% of SCZ donors in the original Allen study had antipsychotic evidence at time of death; the degree to which medication confounds expression differences cannot be determined [2]
 - ORA was conducted against manually curated subtype labels only, not against external pathway databases (KEGG, GO, Reactome) [6]
