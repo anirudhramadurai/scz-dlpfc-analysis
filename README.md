@@ -4,17 +4,18 @@
 
 ---
 
-## tl;dr
+## Overview
 
-Using publicly available postmortem brain microarray data (GSE53987, 48 schizophrenia vs. 55 control DLPFC samples), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. After detecting and correcting a processing batch effect, unsupervised clustering did not recover diagnosis (ARI near 0), consistent with the postmortem transcriptomics literature. However, co-expression analysis revealed that the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia: all markers co-vary as a single module, suggesting coordinated rather than subtype-specific dysregulation. Fifteen genes were significantly differentially expressed (FDR < 0.1), all GABAergic markers downregulated, with SST+ being the only significantly enriched interneuron subtype category. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
+Using publicly available postmortem brain microarray data (GSE53987, 48 schizophrenia vs. 55 control DLPFC samples), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. After detecting and correcting a processing batch effect, unsupervised clustering did not recover diagnosis (ARI near 0), which is consistent with the postmortem transcriptomics literature.
+
+The more interesting result came from co-expression analysis: the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia, with all markers co-varying as a single module rather than showing subtype-specific patterns. Fifteen genes were significantly differentially expressed (FDR < 0.1), all GABAergic markers downregulated, with SST+ being the only significantly enriched interneuron subtype. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
+
 
 ---
 
 ## What is this project?
 
-This is an independent computational genomics project asking a specific question about schizophrenia at the molecular level: do the different subtypes of inhibitory neurons in the prefrontal cortex break down together or independently in the disease?
-
-To answer it, I downloaded publicly available postmortem brain gene expression data, built a four-script Python analysis pipeline from scratch, and applied unsupervised machine learning, differential expression analysis, and pathway enrichment to real patient data.
+This project applies a reproducible Python analysis pipeline to postmortem brain gene expression data to investigate a specific question about schizophrenia: do the different subtypes of inhibitory neurons in the prefrontal cortex break down together or independently in the disease?
 
 The full pipeline runs in about 15 minutes on any laptop, from raw data download to final figures.
 
@@ -60,7 +61,7 @@ These findings are consistent with the GABAergic hypothesis of schizophrenia, wh
 
 ### The open question this project addresses
 
-If PV+, SST+, and VIP+ interneurons are all affected in schizophrenia, does this happen in a coordinated way (all subtypes going down together), or do the subtypes show independent patterns of dysregulation? This distinction matters for understanding whether schizophrenia involves a general failure of GABAergic inhibition or something more specific to particular circuit elements [1].
+If PV+, SST+, and VIP+ interneurons are all affected in schizophrenia, does this happen in a coordinated way, or do the subtypes show independent patterns? Whether this reflects a general failure of cortical inhibition or something more targeted to specific circuit elements is an open question with real implications for understanding the disease [1].
 
 ---
 
@@ -121,7 +122,7 @@ Filters to schizophrenia and control donors only (bipolar disorder and MDD donor
 *Z-scoring:* Each gene is normalized to mean = 0 and standard deviation = 1 across all donors. This puts all genes on a common scale so that clustering is not dominated by highly expressed genes.
 
 **Step 3: Cluster analysis**
-Applies Ward's linkage hierarchical clustering to donors, PCA, GABAergic co-expression matrices, and cluster validation metrics including silhouette score, Adjusted Rand Index, and cophenetic correlation coefficient [9].
+Applies Ward's linkage hierarchical clustering to donors, runs PCA to assess batch correction and diagnosis separation, computes GABAergic co-expression matrices for SCZ and Control separately, and validates clusters using silhouette score, Adjusted Rand Index, and cophenetic correlation coefficient [9].
 
 **Step 4: Differential expression and pathway enrichment**
 Welch's t-test per gene with Benjamini-Hochberg FDR correction [7], followed by over-representation analysis using Fisher's exact test against manually curated interneuron subtype gene sets [6].
@@ -140,7 +141,7 @@ This dendrogram shows the result of hierarchical clustering of all 103 donors ba
 
 If gene expression reliably distinguished schizophrenia from controls, we would expect two large clusters, one mostly red and one mostly blue. Instead, the colors are intermixed throughout. The Adjusted Rand Index (ARI = -0.008) quantifies this: ARI of 1.0 would mean perfect recovery of diagnosis; ARI near 0 means the clustering is no better than random with respect to diagnosis.
 
-This is consistent with a well-established finding in postmortem brain transcriptomics: technical variables (RNA quality, postmortem interval) and biological covariates (age, medication history) typically explain more expression variance than disease status [5]. Reporting this honestly is important. It is not a pipeline failure; it is an accurate result about the nature of the data.
+This is consistent with a well-established finding in postmortem brain transcriptomics: technical variables like RNA quality and postmortem interval, along with biological covariates like age and medication history, typically explain more expression variance than disease status does [5]. It is not a pipeline failure; it is an accurate result about the nature of postmortem data, and reporting it honestly matters.
 
 ![PCA of donor expression profiles](figures/fig2_pca.png)
 
@@ -164,7 +165,7 @@ This figure shows Pearson correlation matrices for all pairwise combinations of 
 
 **In schizophrenia (left panel):** that independence is lost. PVALB now correlates strongly with VIP (r = 0.86), GAD1 (r = 0.78), GAD2 (r = 0.83), and SST (r = 0.71). All markers co-vary as a single module.
 
-**What this means:** In healthy cortex, PV+ and SST+ interneurons maintain relatively independent expression profiles, reflecting their distinct roles. In schizophrenia, this separation collapses and all GABAergic markers rise and fall together. This suggests coordinated rather than subtype-specific dysregulation, directly addressing Research Question 1.
+**What this means:** In healthy cortex, PV+ and SST+ interneurons maintain relatively independent expression profiles, reflecting their distinct functional roles. In schizophrenia, that separation collapses and all GABAergic markers rise and fall together, pointing to coordinated rather than subtype-specific dysregulation, and directly addressing Research Question 1.
 
 ---
 
@@ -180,7 +181,7 @@ A volcano plot is a standard visualization for differential expression results. 
 
 15 genes were significant at FDR < 0.1, |log2FC| >= 0.1 [7]. Every significant GABAergic marker is on the left (downregulated in schizophrenia). CLDN5, encoding claudin-5, a tight junction protein in blood-brain barrier endothelial cells, is the only significantly upregulated gene.
 
-*Note on thresholds:* The thresholds used here (FDR < 0.1, |log2FC| >= 0.1) are more permissive than typical genome-wide standards (FDR < 0.05, |log2FC| >= 0.5). This is justified because we are testing only 48 curated genes rather than approximately 20,000, so the multiple testing burden is far lower [6, 7]. All threshold choices are disclosed.
+*Note on thresholds:* The thresholds used here (FDR < 0.1, |log2FC| >= 0.1) are more permissive than typical genome-wide standards (FDR < 0.05, |log2FC| >= 0.5). This is appropriate for a curated 48-gene panel: testing 48 genes carries far less multiple testing burden than a genome-wide screen of ~20,000 genes [6, 7].
 
 ![Fold-change bar chart](figures/fig7_barplot_fc.png)
 
@@ -261,7 +262,7 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 - 10 of the 58 target genes from Guillozet-Bongaarts et al. were absent from the GPL570 platform and could not be analyzed [2]
 - Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates in this dataset [5]
 - 75% of SCZ donors in the original Allen study had antipsychotic evidence at time of death; the degree to which medication confounds expression differences cannot be determined [2]
-- ORA was conducted against manually curated subtype labels only, not against external pathway databases (KEGG, GO, Reactome) [6]
+- Pathway enrichment was tested against manually curated interneuron subtype labels only, not against external databases (KEGG, GO, Reactome) [6]
 - Microarray measures relative RNA abundance across thousands of probes simultaneously but lacks the sensitivity of RNA-seq for lowly expressed genes
 - Results are correlational; no causal inference is possible from observational postmortem data
 
@@ -301,4 +302,4 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 
 ## Acknowledgements
 
-Developed as an independent project, drawing on methods from BIME 534 (Biology & Informatics, University of Washington). This project was inspired by concepts from that course, especially reproducible analysis of public high-throughput datasets and translational interpretation of omics results. Data from NCBI Gene Expression Omnibus. Allen Human Brain Atlas at human.brain-map.org, produced by the Allen Institute for Brain Science.
+Developed as an independent project, drawing on methods from BIME 534 (Biology & Informatics, University of Washington), particularly reproducible analysis of public high-throughput datasets and translational interpretation of omics results. Data from NCBI Gene Expression Omnibus. Allen Human Brain Atlas at human.brain-map.org, produced by the Allen Institute for Brain Science.
