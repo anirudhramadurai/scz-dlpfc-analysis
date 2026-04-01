@@ -89,8 +89,8 @@ SUBTYPE_COLORS = {
 }
 
 plt.rcParams.update({
-    "figure.facecolor":  "white",
-    "axes.facecolor":    "white",
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
     "axes.spines.top":   False,
     "axes.spines.right": False,
     "axes.linewidth":    0.8,

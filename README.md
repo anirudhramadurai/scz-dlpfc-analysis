@@ -92,7 +92,7 @@ The dataset uses **Affymetrix microarrays**, a technology that measures the expr
 
 **Note on data source:** This project was originally designed around the Allen Brain Atlas Human ISH Schizophrenia Study (Guillozet-Bongaarts et al. 2014 [2]), which profiled 58 genes by in situ hybridization in DLPFC tissue from 19 SCZ donors and 33 controls. In situ hybridization (ISH) labels RNA directly within tissue sections, allowing you to see which cells express a gene and at what density. The Allen Brain Atlas ISH REST API is no longer operational. GSE53987 was selected as the replacement because it covers the same brain region, the same diagnostic comparison, and an overlapping gene set, with the additional advantage that Affymetrix microarray provides continuous quantitative signal across all probes simultaneously.
 
-**Gene panel:** 48 of the 58 target genes from Guillozet-Bongaarts et al. were present on the GPL570 platform and used in analysis. Genes absent from the platform (including CHRNA7 and PRODH) were excluded.
+**Gene panel:** 48 of the 58 target genes from Guillozet-Bongaarts et al. were present on the GPL570 platform and used in analysis. CHRNA7 and PRODH were absent from the platform and excluded; 8 additional genes from the source panel were not carried forward into TARGET_GENES.
 
 ---
 
@@ -113,7 +113,7 @@ Four Python scripts run in sequence. Every output is fully reproducible from the
 Downloads the full GSE53987 SOFT file directly from NCBI via HTTPS. The SOFT (Simple Omnibus Format in Text) format is a plain-text file containing all sample metadata and expression values for the dataset [8]. A custom parser extracts expression values and maps Affymetrix probe IDs to gene symbols using the platform annotation table. For genes with multiple probes, the probe with the highest mean expression is selected.
 
 **Step 2: Preprocessing**
-Filters to schizophrenia and control donors only (bipolar disorder and MDD donors are present in the full dataset but excluded here). Applies linear batch correction, log2 transforms expression values, and z-score normalizes per gene across donors.
+Filters to schizophrenia and control donors only (bipolar disorder and MDD donors are present in the full dataset but excluded here). Log2 transforms expression values, then applies linear batch correction on the log2 data, and z-score normalizes per gene across donors.
 
 *Batch correction:* Before correcting, PCA of the raw data showed that the first principal component (explaining 42% of variance) corresponded to processing cohort (GSM1304xxx vs GSM1305xxx sample ID prefixes) rather than diagnosis. This is a technical artifact from samples being processed at different times, a common problem in multi-cohort postmortem datasets [5]. Linear regression was used to remove the systematic shift between cohorts while preserving within-cohort biological variation, following Leek et al. (2010) [5].
 
@@ -259,7 +259,7 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 
 - Sample size (n = 103) limits statistical power, particularly after FDR correction over a small gene panel [7]
 - The 48-gene panel is curated and not unbiased; enrichment results reflect prior biological knowledge built into the gene selection [6]
-- 10 of the 58 target genes from Guillozet-Bongaarts et al. were absent from the GPL570 platform and could not be analyzed [2]
+- Of the 58 target genes from Guillozet-Bongaarts et al., 50 were included in TARGET_GENES; of those, CHRNA7 and PRODH were absent from the GPL570 platform and excluded, leaving 48 genes analyzed [2]
 - Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates in this dataset [5]
 - 75% of SCZ donors in the original Allen study had antipsychotic evidence at time of death; the degree to which medication confounds expression differences cannot be determined [2]
 - Pathway enrichment was tested against manually curated interneuron subtype labels only, not against external databases (KEGG, GO, Reactome) [6]

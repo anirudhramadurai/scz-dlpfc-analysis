@@ -20,11 +20,10 @@ Bipolar disorder and major depressive disorder samples are excluded in
 
 Gene panel note
 ---------------
-TARGET_GENES below lists the 58-gene panel from Guillozet-Bongaarts et al. (2014),
-which this project was designed to replicate computationally. Not all genes are
-present on the GPL570 platform — genes absent from the platform (including CHRNA7
-and PRODH) will be reported as "Not in platform" at runtime and excluded from
-analysis. 48 of the 58 target genes were found on the platform.
+TARGET_GENES below lists 50 genes drawn from the 58-gene panel in Guillozet-Bongaarts et al. (2014).
+Of those 50, CHRNA7 and PRODH are absent from the GPL570 platform, will be reported as
+"Not in platform" at runtime, and excluded from analysis, leaving 48 genes used.
+The remaining 8 genes from the source panel were not carried forward into TARGET_GENES.
 
 Usage
 -----
@@ -71,7 +70,7 @@ SOFT_URL = (
     "GSE53987/soft/GSE53987_family.soft.gz"
 )
 SOFT_PATH = CACHE_DIR / "GSE53987_family.soft.gz"
-SOFT_TEXT  = CACHE_DIR / "GSE53987_family.soft"
+SOFT_TEXT = CACHE_DIR / "GSE53987_family.soft"
 
 # Target genes from the 58-gene panel of Guillozet-Bongaarts et al. (2014).
 # Note: some genes (e.g. CHRNA7, PRODH) are absent from the GPL570 platform
@@ -117,7 +116,7 @@ def download_soft():
                 downloaded += len(chunk)
                 if total:
                     pct = downloaded / total * 100
-                    mb  = downloaded / 1e6
+                    mb = downloaded / 1e6
                     print(f"\r  {mb:.1f} MB / {total/1e6:.1f} MB  ({pct:.0f}%)",
                           end="", flush=True)
     print(f"\n  Download complete: {SOFT_PATH.stat().st_size / 1e6:.1f} MB")
@@ -240,8 +239,8 @@ def parse_soft() -> tuple:
                     else:
                         metadata[current_sample][k] = v
 
-    n_samples  = len(expression)
-    n_probes   = len(platform)
+    n_samples = len(expression)
+    n_probes = len(platform)
     probe_vals = sum(len(v) for v in expression.values())
     print(f"  Samples: {n_samples}")
     print(f"  Platform probes with gene symbols: {n_probes}")
@@ -355,12 +354,12 @@ def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
 
     for gene, probes in gene_probe_vals.items():
         best_probe = None
-        best_mean  = -np.inf
+        best_mean = -np.inf
         for probe, sample_dict in probes.items():
             vals  = [sample_dict.get(s, np.nan) for s in sample_ids]
             nmean = np.nanmean(vals) if any(not np.isnan(v) for v in vals) else -np.inf
             if nmean > best_mean:
-                best_mean  = nmean
+                best_mean = nmean
                 best_probe = probe
         vals = [gene_probe_vals[gene][best_probe].get(s, np.nan) for s in sample_ids]
         gene_expr[gene] = pd.Series(vals, index=sample_ids)

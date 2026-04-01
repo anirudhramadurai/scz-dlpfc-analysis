@@ -90,8 +90,8 @@ SUBTYPE_COLORS = {
 }
 
 plt.rcParams.update({
-    "figure.facecolor":  "white",
-    "axes.facecolor":    "white",
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
     "axes.spines.top":   False,
     "axes.spines.right": False,
     "axes.linewidth":    0.8,
@@ -121,7 +121,7 @@ def differential_expression(raw, meta):
 
     rows = []
     for gene in raw.columns:
-        scz_v  = raw.loc[raw.index.intersection(scz_idx),  gene].dropna()
+        scz_v = raw.loc[raw.index.intersection(scz_idx),  gene].dropna()
         ctrl_v = raw.loc[raw.index.intersection(ctrl_idx), gene].dropna()
         if len(scz_v) < 3 or len(ctrl_v) < 3:
             continue
@@ -137,8 +137,9 @@ def differential_expression(raw, meta):
     de = pd.DataFrame(rows).sort_values("pval").reset_index(drop=True)
     m = len(de)
     de["rank"] = range(1, m + 1)
-    # Benjamini-Hochberg: padj = p * m / rank, clipped at 1.0
-    de["padj"] = (de["pval"] * m / de["rank"]).clip(upper=1.0).round(4)
+    # Benjamini-Hochberg: padj = p * m / rank, clipped at 1.0, monotonicity enforced
+    de["padj"] = (de["pval"] * m / de["rank"]).clip(upper=1.0)
+    de["padj"] = de["padj"][::-1].cummin()[::-1].round(4)
     de["significant"] = (de["padj"] < ALPHA) & (de["log2fc"].abs() >= MIN_FC)
 
     sig = de["significant"].sum()
@@ -215,9 +216,9 @@ def plot_volcano(de, genes):
     ax.text(de["log2fc"].min() + 0.03 * x_range, y_thresh + 0.12,
             f"FDR = {ALPHA}", fontsize=8, color="#888888", va="bottom")
 
-    ax.text(0.98, 0.06, "↑ Higher in SCZ", transform=ax.transAxes,
+    ax.text(0.98, 0.06, "Higher in SCZ", transform=ax.transAxes,
             fontsize=9, color=SCZ_COLOR, ha="right", va="bottom")
-    ax.text(0.02, 0.06, "↓ Lower in SCZ", transform=ax.transAxes,
+    ax.text(0.02, 0.06, "Lower in SCZ", transform=ax.transAxes,
             fontsize=9, color=CTRL_COLOR, ha="left", va="bottom")
 
     ax.set_xlabel("log2 Fold Change  (Schizophrenia - Control)", fontsize=11)
@@ -274,7 +275,7 @@ def plot_fc_barplot(de, genes):
         if row["significant"]:
             x_star = row["log2fc"] + (0.005 if row["log2fc"] > 0 else -0.005)
             ha_star = "left" if row["log2fc"] > 0 else "right"
-            ax.text(x_star, i, " ★", va="center", ha=ha_star,
+            ax.text(x_star, i, " *", va="center", ha=ha_star,
                     fontsize=11, color="black")
     x_pval = ax.get_xlim()[1] * 1.05
     for i, (_, row) in enumerate(top.iterrows()):
@@ -365,7 +366,7 @@ def plot_pathway_enrichment(de, genes):
 
     x_max = max(df["pct_deg"].max(), 10)
     for i, (_, row) in enumerate(df.iterrows()):
-        sig_star = " ★" if row["pval"] < 0.05 else ""
+        sig_star = " *" if row["pval"] < 0.05 else ""
         label = f"{row['n_deg']}/{row['n_genes']} genes   p = {row['pval']:.3f}{sig_star}"
         ax.text(
             x_max * 1.04, i, label,
@@ -379,7 +380,7 @@ def plot_pathway_enrichment(de, genes):
     ax.set_xlabel("% of subtype genes that are differentially expressed", fontsize=11)
     ax.set_title(
         "Pathway Enrichment by Interneuron Subtype\n"
-        "Over-Representation Analysis (Fisher's exact test)  |  ★ p < 0.05",
+        "Over-Representation Analysis (Fisher's exact test)  |  * p < 0.05",
         fontsize=11
     )
 
