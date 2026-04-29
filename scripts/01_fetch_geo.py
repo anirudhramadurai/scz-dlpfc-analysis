@@ -321,6 +321,19 @@ def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
 
     print(f"  Total samples in metadata: {len(meta)}")
 
+    # Filter to DLPFC (prefrontal cortex BA46) only.
+    # GSE53987 contains three brain regions: prefrontal cortex, hippocampus,
+    # and associative striatum. This analysis targets DLPFC exclusively.
+    if "tissue" in meta.columns:
+        dlpfc_mask = meta["tissue"].astype(str).str.contains(
+            "Pre-frontal cortex|prefrontal|BA46", case=False, regex=True, na=False
+        )
+        meta = meta[dlpfc_mask].copy()
+        print(f"  After DLPFC filter: {len(meta)} samples")
+        print(f"  Tissue values retained: {meta['tissue'].unique().tolist()}")
+    else:
+        print("  WARNING: 'tissue' column not found -- no region filter applied")
+
     # Expression matrix
     # Map probe IDs to gene symbols, keep only target genes
     target_set = set(TARGET_GENES)

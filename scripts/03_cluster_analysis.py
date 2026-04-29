@@ -249,9 +249,11 @@ def plot_gabaergic_coexpression(expr, genes, meta):
     fig, axes = plt.subplots(1, 2, figsize=(16, 6.5))
     fig.subplots_adjust(top=0.88, wspace=0.45)
 
+    n_scz  = int((meta["diagnosis"] == "Schizophrenia").sum())
+    n_ctrl = int((meta["diagnosis"] == "Control").sum())
     for ax, (diag, label, color) in zip(axes, [
-        ("Schizophrenia", "Schizophrenia (n=48)", SCZ_COLOR),
-        ("Control", "Control (n=55)", CTRL_COLOR),
+        ("Schizophrenia", f"Schizophrenia (n={n_scz})",  SCZ_COLOR),
+        ("Control",       f"Control (n={n_ctrl})",        CTRL_COLOR),
     ]):
         if "diagnosis" in meta.columns:
             sub = expr[gaba].loc[meta["diagnosis"] == diag]

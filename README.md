@@ -6,9 +6,9 @@
 
 ## Overview
 
-Using publicly available postmortem brain microarray data (GSE53987, 48 schizophrenia vs. 55 control DLPFC samples), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. After detecting and correcting a processing batch effect, unsupervised clustering did not recover diagnosis (ARI near 0), which is consistent with the postmortem transcriptomics literature.
+Using publicly available postmortem brain microarray data (GSE53987, 15 schizophrenia vs. 19 control DLPFC samples, n = 34), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. Unsupervised clustering did not recover diagnosis (ARI near 0), which is consistent with the postmortem transcriptomics literature.
 
-The more interesting result came from co-expression analysis: the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia, with all markers co-varying as a single module rather than showing subtype-specific patterns. Fifteen genes were significantly differentially expressed (FDR < 0.1), all GABAergic markers downregulated, with SST+ being the only significantly enriched interneuron subtype. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
+The more interesting result came from co-expression analysis: the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia, with all markers co-varying as a single module rather than showing subtype-specific patterns. Three genes were significantly differentially expressed (FDR < 0.1): PVALB (PV+, downregulated, padj = 0.011), RGS4 (downregulated, padj = 0.006), and CARTPT (upregulated, padj = 0.030). No interneuron subtype reached significance in enrichment analysis at this sample size, consistent with limited statistical power at n = 34. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
 
 
 ---
@@ -86,7 +86,7 @@ GEO (Gene Expression Omnibus) is a public repository maintained by NCBI where re
 | Tissue | Postmortem prefrontal cortex (Brodmann Area 46), striatum, hippocampus |
 | Groups | Schizophrenia, bipolar disorder, major depressive disorder, matched controls |
 | Total samples | 205 |
-| Used in this analysis | 48 SCZ + 55 Control PFC samples (n = 103) |
+| Used in this analysis | 15 SCZ + 19 Control DLPFC samples (n = 34) |
 
 The dataset uses **Affymetrix microarrays**, a technology that measures the expression level of thousands of genes simultaneously by hybridizing labeled RNA to short DNA probes on a chip. Each probe has a known sequence that binds its complementary target RNA, and the fluorescence intensity of the resulting signal indicates how much of that RNA is present in the sample.
 
@@ -113,16 +113,16 @@ Four Python scripts run in sequence. Every output is fully reproducible from the
 Downloads the full GSE53987 SOFT file directly from NCBI via HTTPS. The SOFT (Simple Omnibus Format in Text) format is a plain-text file containing all sample metadata and expression values for the dataset [8]. A custom parser extracts expression values and maps Affymetrix probe IDs to gene symbols using the platform annotation table. For genes with multiple probes, the probe with the highest mean expression is selected.
 
 **Step 2: Preprocessing**
-Filters to schizophrenia and control donors only (bipolar disorder and MDD donors are present in the full dataset but excluded here). Log2 transforms expression values, then applies linear batch correction on the log2 data, and z-score normalizes per gene across donors.
+Filters to schizophrenia and control DLPFC donors only (bipolar disorder and MDD donors, and hippocampus and striatum samples, are excluded here). Log2 transforms expression values and z-score normalizes per gene across donors.
 
-*Batch correction:* Before correcting, PCA of the raw data showed that the first principal component (explaining 42% of variance) corresponded to processing cohort (GSM1304xxx vs GSM1305xxx sample ID prefixes) rather than diagnosis. This is a technical artifact from samples being processed at different times, a common problem in multi-cohort postmortem datasets [5]. Linear regression was used to remove the systematic shift between cohorts while preserving within-cohort biological variation, following Leek et al. (2010) [5].
+*Batch correction:* After filtering to DLPFC samples only, all 34 donors fall within a single processing cohort (GSM1304xxx prefix). No batch effect was detectable and no correction was applied. The batch effect previously observed in the full 205-sample dataset reflected biological differences between brain regions (DLPFC, hippocampus, striatum), not a technical processing artifact within DLPFC.
 
 *Log2 transformation:* Microarray intensity values are right-skewed. Log2 transformation compresses the range and makes fold-changes interpretable: a difference of 1 unit on the log2 scale corresponds to a twofold change in expression.
 
 *Z-scoring:* Each gene is normalized to mean = 0 and standard deviation = 1 across all donors. This puts all genes on a common scale so that clustering is not dominated by highly expressed genes.
 
 **Step 3: Cluster analysis**
-Applies Ward's linkage hierarchical clustering to donors, runs PCA to assess batch correction and diagnosis separation, computes GABAergic co-expression matrices for SCZ and Control separately, and validates clusters using silhouette score, Adjusted Rand Index, and cophenetic correlation coefficient [9].
+Applies Ward's linkage hierarchical clustering to donors, runs PCA to assess diagnosis separation, computes GABAergic co-expression matrices for SCZ and Control separately, and validates clusters using silhouette score, Adjusted Rand Index, and cophenetic correlation coefficient [9].
 
 **Step 4: Differential expression and pathway enrichment**
 Welch's t-test per gene with Benjamini-Hochberg FDR correction [7], followed by over-representation analysis using Fisher's exact test against manually curated interneuron subtype gene sets [6].
@@ -137,7 +137,7 @@ Welch's t-test per gene with Benjamini-Hochberg FDR correction [7], followed by 
 
 ![Donor hierarchical clustering dendrogram](figures/fig1_donor_dendrogram.png)
 
-This dendrogram shows the result of hierarchical clustering of all 103 donors based solely on their gene expression profiles, with no knowledge of diagnosis. Each leaf at the bottom is one donor; the color bar shows their actual diagnosis (red = schizophrenia, blue = control). The height at which two branches merge indicates how dissimilar those donors are.
+This dendrogram shows the result of hierarchical clustering of all 34 DLPFC donors based solely on their gene expression profiles, with no knowledge of diagnosis. Each leaf at the bottom is one donor; the color bar shows their actual diagnosis (red = schizophrenia, blue = control). The height at which two branches merge indicates how dissimilar those donors are.
 
 If gene expression reliably distinguished schizophrenia from controls, we would expect two large clusters, one mostly red and one mostly blue. Instead, the colors are intermixed throughout. The Adjusted Rand Index (ARI = -0.008) quantifies this: ARI of 1.0 would mean perfect recovery of diagnosis; ARI near 0 means the clustering is no better than random with respect to diagnosis.
 
@@ -145,7 +145,7 @@ This is consistent with a well-established finding in postmortem brain transcrip
 
 ![PCA of donor expression profiles](figures/fig2_pca.png)
 
-Principal Component Analysis (PCA) is a dimensionality reduction technique that finds the directions of greatest variance in a high-dimensional dataset [9]. Here, each dot is one donor projected onto the first two principal components. PC1 captures 42% of total variance. If diagnosis were the dominant signal, SCZ (red) and Control (blue) donors would separate along one of these axes. They do not: the two groups are completely interleaved, confirming the clustering result.
+Principal Component Analysis (PCA) is a dimensionality reduction technique that finds the directions of greatest variance in a high-dimensional dataset [9]. Here, each dot is one donor projected onto the first two principal components. If diagnosis were the dominant signal, SCZ (red) and Control (blue) donors would separate along one of these axes. They do not: the two groups are interleaved, confirming the clustering result. Note: the 42% PC1 variance figure reported in an earlier version of this analysis reflected a dataset that inadvertently included hippocampus and striatum samples; this PCA uses DLPFC-only data.
 
 ![Cluster validation](figures/fig5_cluster_validation.png)
 
@@ -173,13 +173,13 @@ This figure shows Pearson correlation matrices for all pairwise combinations of 
 
 ![Gene expression heatmap](figures/fig4_gene_heatmap.png)
 
-This heatmap shows batch-corrected, z-scored expression for all 48 genes across all 103 donors. Donors are sorted by diagnosis (Control on the left, Schizophrenia on the right); the dashed vertical line marks the boundary. Genes are clustered by Ward's linkage. Gene labels are colored by subtype. The color of each cell represents the z-score: red = higher than average expression for that gene, blue = lower than average. A subtle but consistent shift toward blue in the SCZ half is visible for several GABAergic markers, particularly NPY, SST, PENK, PVALB, and GAD1.
+This heatmap shows z-scored expression for all 48 genes across all 34 DLPFC donors. Donors are sorted by diagnosis (Control on the left, Schizophrenia on the right); the dashed vertical line marks the boundary. Genes are clustered by Ward's linkage. Gene labels are colored by subtype. The color of each cell represents the z-score: red = higher than average expression for that gene, blue = lower than average. A shift toward blue in the SCZ half is most visible for PVALB, with SST, NPY, and PENK showing trends that do not survive FDR correction at n = 34.
 
 ![Volcano plot](figures/fig6_volcano.png)
 
 A volcano plot is a standard visualization for differential expression results. The x-axis shows the log2 fold-change (negative = lower in SCZ, positive = higher in SCZ). The y-axis shows -log10(p-value): higher points are more statistically significant. The dashed horizontal line marks the FDR threshold. Colored points are significant; gray points did not pass the thresholds. Gene labels are colored by subtype.
 
-15 genes were significant at FDR < 0.1, |log2FC| >= 0.1 [7]. Every significant GABAergic marker is on the left (downregulated in schizophrenia). CLDN5, encoding claudin-5, a tight junction protein in blood-brain barrier endothelial cells, is the only significantly upregulated gene.
+3 genes were significant at FDR < 0.1, |log2FC| >= 0.1 [7]: PVALB (PV+, downregulated), RGS4 (downregulated), and CARTPT (upregulated). The reduced DEG count relative to the 15 reported in an earlier version of this analysis reflects the correction of a sample selection error; the earlier run pooled DLPFC, hippocampus, and striatum samples together.
 
 *Note on thresholds:* The thresholds used here (FDR < 0.1, |log2FC| >= 0.1) are more permissive than typical genome-wide standards (FDR < 0.05, |log2FC| >= 0.5). This is appropriate for a curated 48-gene panel: testing 48 genes carries far less multiple testing burden than a genome-wide screen of ~20,000 genes [6, 7].
 
@@ -195,7 +195,7 @@ The top 20 genes ranked by absolute effect size (|log2FC|), sorted from most neg
 
 Over-representation analysis (ORA) tests whether a particular category of genes is more represented among the differentially expressed genes than would be expected by chance, given the background DEG rate across the full panel [6]. The test used here is Fisher's exact test, a standard nonparametric test for 2x2 contingency tables. For each subtype, we ask: of all the genes in that category, what fraction are DEGs, and is that fraction significantly higher than the background rate?
 
-The dashed vertical line shows the background DEG rate across the full 48-gene panel (31%).
+The dashed vertical line shows the background DEG rate across the full 48-gene panel (6%). No subtype reached significance; power is limited at n = 34.
 
 **SST+: 3 out of 3 genes significant, Fisher's exact p = 0.026.** This is the only statistically significant enrichment. All three SST+ markers in the panel (SST, NPY, PENK) were differentially expressed.
 
@@ -213,8 +213,8 @@ Note: enrichment was tested against the curated subtype labels defined in this p
 |---|---|
 | Does clustering recover diagnosis? | No (ARI close to 0). Technical and biological covariates dominate variance [5]. |
 | Do GABAergic subtypes co-vary independently? | No. In SCZ, all markers co-vary as a single module. PV+ independence from SST+ is lost. |
-| Which genes are differentially expressed? | 15 genes (FDR < 0.1) [7]. All significant GABAergic markers downregulated. CLDN5 upregulated. |
-| Which subtypes are enriched in DEGs? | SST+ (3/3 genes, Fisher p = 0.026) [6]. Excitatory neurons unaffected (0/4 genes). |
+| Which genes are differentially expressed? | 3 genes (FDR < 0.1): PVALB (PV+, down), RGS4 (down), CARTPT (up). Power limited at n = 34 [7]. |
+| Which subtypes are enriched in DEGs? | No significant enrichment (n = 34 insufficient power). PVALB is the only interneuron marker significant; PV+ 1/1 but Fisher p = 1.0 with one gene [6]. |
 
 ---
 
@@ -257,7 +257,7 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 
 **Current limitations:**
 
-- Sample size (n = 103) limits statistical power, particularly after FDR correction over a small gene panel [7]
+- Sample size (n = 34 DLPFC donors) substantially limits statistical power; only the strongest effect sizes survive FDR correction at this n [7]
 - The 48-gene panel is curated and not unbiased; enrichment results reflect prior biological knowledge built into the gene selection [6]
 - Of the 58 target genes from Guillozet-Bongaarts et al., 50 were included in TARGET_GENES; of those, CHRNA7 and PRODH were absent from the GPL570 platform and excluded, leaving 48 genes analyzed [2]
 - Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates in this dataset [5]
