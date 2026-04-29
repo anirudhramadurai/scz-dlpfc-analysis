@@ -163,7 +163,7 @@ This figure shows Pearson correlation matrices for all pairwise combinations of 
 
 **In controls (right panel):** PVALB (purple, PV+) is relatively independent of the other markers. Its correlations with CALB1, NPY, and PENK range from roughly -0.30 to 0.35, close to zero. This makes biological sense: PV+ and SST+ interneurons serve distinct functional roles [1].
 
-**In schizophrenia (left panel):** that independence is lost. PVALB now correlates strongly with VIP (r = 0.86), GAD1 (r = 0.78), GAD2 (r = 0.83), and SST (r = 0.71). All markers co-vary as a single module.
+**In schizophrenia (left panel):** that independence is directionally reduced. At n = 15, PVALB shows elevated correlations with GAD1 (r = 0.56), NPY (r = 0.58), and SST (r = 0.25) relative to controls, and all markers shift toward co-varying together.
 
 **What this means:** In healthy cortex, PV+ and SST+ interneurons maintain relatively independent expression profiles, reflecting their distinct functional roles. In schizophrenia, that separation collapses and all GABAergic markers rise and fall together, pointing to coordinated rather than subtype-specific dysregulation, and directly addressing Research Question 1.
 
@@ -260,7 +260,7 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 - Sample size (n = 34 DLPFC donors) substantially limits statistical power; only the strongest effect sizes survive FDR correction at this n [7]
 - The 48-gene panel is curated and not unbiased; enrichment results reflect prior biological knowledge built into the gene selection [6]
 - Of the 58 target genes from Guillozet-Bongaarts et al., 50 were included in TARGET_GENES; of those, CHRNA7 and PRODH were absent from the GPL570 platform and excluded, leaving 48 genes analyzed [2]
-- Batch correction was inferred from GEO sample ID prefix; RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates in this dataset [5]
+- No batch correction was applied (all 34 DLPFC donors fall within one processing cohort); RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates and could not be controlled for [5]
 - 75% of SCZ donors in the original Allen study had antipsychotic evidence at time of death; the degree to which medication confounds expression differences cannot be determined [2]
 - Pathway enrichment was tested against manually curated interneuron subtype labels only, not against external databases (KEGG, GO, Reactome) [6]
 - Microarray measures relative RNA abundance across thousands of probes simultaneously but lacks the sensitivity of RNA-seq for lowly expressed genes
