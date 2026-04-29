@@ -103,8 +103,8 @@ Four Python scripts run in sequence. Every output is fully reproducible from the
 ```
 01_fetch_geo.py   -->   02_preprocess.py   -->   03_cluster_analysis.py   -->   04_pathway_analysis.py
   Download               Filter, normalize        Clustering, PCA,               Differential
-  GSE53987               correct, normalize        co-expression                  expression,
-  from NCBI GEO          expression data           heatmaps                       enrichment
+  GSE53987               expression data           co-expression                  expression,
+  from NCBI GEO          (DLPFC only)              heatmaps                       enrichment
 ```
 
 ### What each step does
