@@ -102,7 +102,7 @@ Four Python scripts run in sequence. Every output is fully reproducible from the
 
 ```
 01_fetch_geo.py   -->   02_preprocess.py   -->   03_cluster_analysis.py   -->   04_pathway_analysis.py
-  Download               Filter, batch-           Clustering, PCA,               Differential
+  Download               Filter, normalize        Clustering, PCA,               Differential
   GSE53987               correct, normalize        co-expression                  expression,
   from NCBI GEO          expression data           heatmaps                       enrichment
 ```
@@ -197,11 +197,11 @@ Over-representation analysis (ORA) tests whether a particular category of genes 
 
 The dashed vertical line shows the background DEG rate across the full 48-gene panel (6%). No subtype reached significance; power is limited at n = 34.
 
-**SST+: 3 out of 3 genes significant, Fisher's exact p = 0.026.** This is the only statistically significant enrichment. All three SST+ markers in the panel (SST, NPY, PENK) were differentially expressed.
+**PVALB (PV+)** is the only interneuron marker to reach significance. SST, NPY, and PENK show the expected directional trends (all downregulated) but do not survive FDR correction at n = 34.
 
-**Excitatory neurons: 0 out of 4 genes.** No enrichment, confirming the effect is specific to inhibitory interneurons rather than a general transcriptional change.
+**Excitatory neurons: 0 out of 4 genes.** No enrichment, consistent with the effect being specific to inhibitory interneurons.
 
-This directly answers Research Question 2: differentially expressed genes are specifically enriched in the SST+ interneuron subtype category.
+No subtype reaches formal significance at this sample size. The directional pattern (PV+ affected, excitatory unaffected) is consistent with Research Question 2 but cannot be confirmed statistically at n = 34.
 
 Note: enrichment was tested against the curated subtype labels defined in this pipeline, not against external pathway databases such as KEGG or GO [6]. External database enrichment was not implemented.
 
