@@ -28,7 +28,7 @@ relaxed relative to genome-wide standards (FDR < 0.05, |FC| > 1.5) because:
      The multiple testing burden is far lower (48 tests, not ~20,000).
   2. Effect sizes for interneuron markers in postmortem schizophrenia are
      consistently modest (log2FC 0.3-0.8 in the literature).
-  3. Sample size (n=103) limits power to detect small effects at strict thresholds.
+  3. Sample size (n=34 DLPFC donors) limits power to detect small effects at strict thresholds.
 All thresholds are disclosed and justified.
 
 Pathway enrichment: Over-representation analysis (ORA) using Fisher's exact
