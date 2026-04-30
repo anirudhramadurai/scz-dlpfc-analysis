@@ -23,7 +23,7 @@ echo "Step 1: Downloading GSE53987 from NCBI GEO (~75 MB, ~5 min)..."
 python scripts/01_fetch_geo.py
 echo ""
 
-echo "Step 2: Preprocessing and batch correction..."
+echo "Step 2: Preprocessing (log2 transform, z-score; batch correction skipped - single cohort in DLPFC-only data)..."
 python scripts/02_preprocess.py
 echo ""
 

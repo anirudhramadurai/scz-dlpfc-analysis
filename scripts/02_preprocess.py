@@ -249,6 +249,9 @@ def main():
 
     print(f"\nExpression matrix before correction: {pivot.shape}")
 
+    # correct_batch() detects batch from GSM ID prefix and applies linear regression correction.
+    # With DLPFC-only samples (n=34), all donors fall in GSM1304xxx -- one batch detected,
+    # correction is skipped automatically. Function retained for use with multi-region data.
     pivot_bc = correct_batch(pivot, meta)
     expr_z = zscore(pivot_bc)
     expr_log = pivot_bc   # keep log2 batch-corrected for DE analysis
