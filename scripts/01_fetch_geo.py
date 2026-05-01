@@ -43,7 +43,7 @@ References
 Lanz TA, Reinhart V, Sheehan MJ, Rizzo SJS, et al. (2019). Postmortem
   transcriptional profiling reveals widespread increase in inflammation in
   schizophrenia. Translational Psychiatry, 9(1):151.
-  doi:10.1038/s41398-019-0494-6. PMID: 31123247. GEO: GSE53987.
+  doi:10.1038/s41398-019-0492-8. PMID: 31123247. GEO: GSE53987.
 
 Guillozet-Bongaarts AL, Hyde TM, Dalley RA, et al. (2014). Altered gene
   expression in the dorsolateral prefrontal cortex of individuals with

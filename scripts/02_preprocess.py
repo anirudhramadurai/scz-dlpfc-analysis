@@ -32,7 +32,7 @@ Guillozet-Bongaarts AL, et al. (2014). Altered gene expression in the
 
 Lanz TA, et al. (2019). Postmortem transcriptional profiling reveals widespread
   increase in inflammation in schizophrenia. Translational Psychiatry, 9(1):151.
-  doi:10.1038/s41398-019-0494-6. PMID: 31123247. GEO: GSE53987.
+  doi:10.1038/s41398-019-0492-8. PMID: 31123247. GEO: GSE53987.
 
 Dienel SJ, Lewis DA (2019). Alterations in cortical interneurons and cognitive
   function in schizophrenia. Neurobiology of Disease, 131:104208.
