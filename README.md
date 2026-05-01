@@ -292,7 +292,7 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 
 7. Benjamini Y, Hochberg Y. Controlling the false discovery rate: a practical and powerful approach to multiple testing. *Journal of the Royal Statistical Society Series B*. 1995;57(1):289-300.
 
-8. Edgar R, Domrachev M, Lash AE. Gene Expression Omnibus: NCBI gene expression and hybridization array data repository. *Nucleic Acids Research*. 2002;30(1):207-210. doi:10.1093/nar/30.1.207
+8. Barrett T, Wilhite SE, Ledoux P, et al. NCBI GEO: archive for gene expression and epigenomics data sets: 23-year update. *Nucleic Acids Research*. 2024;52(D1):D138-D144. doi:10.1093/nar/gkad965. PMID: 37933855
 
 9. Tan PN, Steinbach M, Kumar V. *Introduction to Data Mining*. Pearson; 2006. Chapter 8: Cluster Analysis.
 
