@@ -2,7 +2,7 @@
 04_pathway_analysis.py
 Differential expression and pathway enrichment analysis.
 
-Reads batch-corrected log2 expression data from 02_preprocess.py and
+Reads preprocessed log2 expression data from 02_preprocess.py and
 produces three figures and two output tables:
 
   fig6_volcano.png          Volcano plot of all genes. Significant genes
