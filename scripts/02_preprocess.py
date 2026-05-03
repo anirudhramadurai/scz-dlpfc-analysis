@@ -1,29 +1,29 @@
 """
 02_preprocess.py
-Cleans, batch-corrects, and normalizes GEO expression data.
+Filters, normalizes, and annotates GEO expression data for DLPFC-only analysis.
 
 Key steps:
-1. Filter to Schizophrenia and Control donors only
-   (GSE53987 also contains bipolar disorder and MDD donors, excluded here)
-2. Detect and correct processing batch (GSM ID prefix-based)
-3. Log2 transform expression values
+1. Filter to Schizophrenia and Control DLPFC donors only
+   (GSE53987 also contains bipolar disorder and MDD donors, and hippocampus
+   and striatum samples, all excluded here)
+2. Log2 transform expression values
+3. Detect processing batch from GSM ID prefix; skip correction if single cohort
 4. Aggregate to mean per donor x gene
 5. Z-score normalize across donors per gene
 6. Annotate genes with interneuron subtype labels
 
-Batch correction rationale:
-PCA and hierarchical clustering of the raw data show that PC1 (42% of variance)
-and the dominant cluster split correspond to GSM1304xxx vs GSM1305xxx sample ID
-prefixes, indicating a technical batch effect from two processing cohorts. This
-is a well-documented issue in multi-cohort postmortem brain microarray studies.
-
-We use linear regression to remove the batch effect before downstream analysis:
-for each gene, we fit expr ~ batch, then take residuals + intercept. This removes
-the systematic expression shift between batches while preserving within-batch
-biological variation, following Leek et al. (2010).
+Batch correction note:
+After filtering to DLPFC-only samples (n=34), all donors fall within the
+GSM1304xxx processing cohort. The correct_batch() function detects this
+automatically and skips correction when only one batch is present. The
+42% PC1 variance previously attributed to a batch effect was observed in
+the full 205-sample dataset and reflected biological differences between
+brain regions (DLPFC, hippocampus, striatum), not a technical artifact.
+No batch correction is applied to the DLPFC-only data. The correct_batch()
+function is retained for use with multi-region data.
 
 Note: explicit covariates (RIN, PMI, medication) were not available in this
-dataset; batch is inferred from sample ID prefix only.
+dataset.
 
 References:
 Guillozet-Bongaarts AL, et al. (2014). Altered gene expression in the
