@@ -231,7 +231,7 @@ cd scz-dlpfc-analysis
 # 2. Create a virtual environment
 python -m venv venv
 source venv/bin/activate          # macOS / Linux
-venv\Scripts\activate             # Windows
+venv/Scripts/activate             # Windows
 
 # 3. Install dependencies
 pip install -r requirements.txt
