@@ -4,7 +4,7 @@ Downloads postmortem DLPFC gene expression data from NCBI GEO.
 
 Dataset: GSE53987
   Tissue:    Postmortem prefrontal cortex (Brodmann Area 46), striatum, hippocampus
-  Platform:  GPL570 — Affymetrix Human Genome U133 Plus 2.0 Array
+  Platform:  GPL570 (Affymetrix Human Genome U133 Plus 2.0 Array
   Groups:    Schizophrenia, bipolar disorder, major depressive disorder, controls
   Reference: Lanz TA, et al. Translational Psychiatry (2019). PMID: 31123247
   URL:       https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE53987
@@ -332,7 +332,7 @@ def build_matrix(metadata: dict, expression: dict, platform: dict) -> tuple:
         print(f"  After DLPFC filter: {len(meta)} samples")
         print(f"  Tissue values retained: {meta['tissue'].unique().tolist()}")
     else:
-        print("  WARNING: 'tissue' column not found -- no region filter applied")
+        print("  WARNING: 'tissue' column not found: no region filter applied")
 
     # Expression matrix
     # Map probe IDs to gene symbols, keep only target genes

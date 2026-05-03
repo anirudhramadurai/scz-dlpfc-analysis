@@ -280,25 +280,25 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 ## Frequently Asked Questions
 
 **Q: If clustering didn't recover diagnosis, does that mean the analysis failed?**
-No -- this is the expected and honest result. Postmortem brain transcriptomics is well-known to be dominated by technical variables like RNA quality and postmortem interval, and biological covariates like age and medication history. Failure to cluster by diagnosis is consistent with the published literature and validates that the pipeline is not producing artificially clean results.
+No. This is the expected and honest result. Postmortem brain transcriptomics is well-known to be dominated by technical variables like RNA quality and postmortem interval, and biological covariates like age and medication history. Failure to cluster by diagnosis is consistent with the published literature and validates that the pipeline is not producing artificially clean results.
 
-**Q: Why only 3 differentially expressed genes? An earlier version showed 15 -- what changed?**
+**Q: Why only 3 differentially expressed genes? An earlier version showed 15. What changed?**
 The earlier 15-gene result came from accidentally pooling DLPFC, hippocampus, and striatum samples together. The apparent batch effect in that analysis was real biological differences between brain regions, not a technical artifact. After filtering to DLPFC-only samples (n=34), 3 genes survive FDR correction. Fewer but correct results are better than more spurious ones.
 
 **Q: Why is FDR < 0.1 used instead of the more standard < 0.05?**
 Standard FDR thresholds are calibrated for genome-wide screening of ~20,000 genes. This analysis tests only 48 curated genes, which carries far less multiple testing burden. FDR < 0.1 is appropriate at this scale and is explicitly justified in the pipeline.
 
 **Q: What does loss of co-expression independence mean biologically?**
-In healthy controls, PV+ and SST+ interneurons serve distinct functional roles and show relatively independent expression profiles. In schizophrenia, that independence is directionally reduced and all GABAergic markers shift toward co-varying together -- suggesting a more generalized failure of cortical inhibition rather than a subtype-specific deficit.
+In healthy controls, PV+ and SST+ interneurons serve distinct functional roles and show relatively independent expression profiles. In schizophrenia, that independence is directionally reduced and all GABAergic markers shift toward co-varying together, suggesting a more generalized failure of cortical inhibition rather than a subtype-specific deficit.
 
-**Q: PVALB was the only significant interneuron marker -- does that mean only PV+ neurons are affected?**
-Not necessarily. PVALB, GAD1, SST, NPY, and PENK all show consistent directional downregulation, directly replicating Guillozet-Bongaarts et al. (2014). The other genes do not survive FDR correction at n=34 -- this reflects limited statistical power, not absence of effect.
+**Q: PVALB was the only significant interneuron marker. Does that mean only PV+ neurons are affected?**
+Not necessarily. PVALB, GAD1, SST, NPY, and PENK all show consistent directional downregulation, directly replicating Guillozet-Bongaarts et al. (2014). The other genes do not survive FDR correction at n=34, reflecting limited statistical power, not absence of effect.
 
 **Q: Could antipsychotic medication confound the PVALB downregulation finding?**
 Yes, this is a legitimate limitation acknowledged in the limitations section. Chronic antipsychotic use affects gene expression, and medication exposure cannot be controlled for without explicit records, which were not available for GSE53987. This is a known limitation across the postmortem transcriptomics field.
 
 **Q: Why not use RNA-seq instead of microarray data?**
-GSE53987 is the best publicly available postmortem DLPFC dataset covering the gene panel of interest with balanced SCZ/control groups. RNA-seq datasets such as CommonMind Consortium are listed as a future direction -- they offer higher sensitivity for lowly expressed genes and better detection of splicing differences.
+GSE53987 is the best publicly available postmortem DLPFC dataset covering the gene panel of interest with balanced SCZ/control groups. RNA-seq datasets such as CommonMind Consortium are listed as a future direction; they offer higher sensitivity for lowly expressed genes and better detection of splicing differences.
 
 ---
 
