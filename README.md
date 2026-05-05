@@ -2,11 +2,20 @@
 
 **Bioinformatics analysis of GABAergic interneuron gene expression in the dorsolateral prefrontal cortex in schizophrenia**
 
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue) ![License](https://img.shields.io/badge/License-MIT-green) ![Data](https://img.shields.io/badge/Data-GEO%3AGSE53987-orange)
+
+| | |
+|---|---|
+| **Dataset** | GSE53987 (NCBI GEO): 15 SCZ vs. 19 control postmortem DLPFC donors (n = 34) |
+| **DEGs** | 3 genes at FDR < 0.1: PVALB (down, padj = 0.011), RGS4 (down, padj = 0.006), CARTPT (up, padj = 0.030) |
+| **Clustering** | ARI near 0 -- diagnosis not recovered (expected in postmortem transcriptomics) |
+| **Key finding** | Co-expression independence between PV+ and SST+ markers collapses in schizophrenia |
+
 ---
 
 ## Overview
 
-Using publicly available postmortem brain microarray data (GSE53987, 15 schizophrenia vs. 19 control DLPFC samples, n = 34), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. Unsupervised clustering did not recover diagnosis (ARI near 0), which is consistent with the postmortem transcriptomics literature.
+Using publicly available postmortem brain microarray data (GSE53987, 15 schizophrenia vs. 19 control DLPFC samples, n = 34), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. Unsupervised clustering did not recover diagnosis (an ARI near 0), which is consistent with the postmortem transcriptomics literature.
 
 The more interesting result came from co-expression analysis: the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia, with all markers co-varying as a single module rather than showing subtype-specific patterns. Three genes were significantly differentially expressed (FDR < 0.1): PVALB (PV+, downregulated, padj = 0.011), RGS4 (downregulated, padj = 0.006), and CARTPT (upregulated, padj = 0.030). No interneuron subtype reached significance in enrichment analysis at this sample size, consistent with limited statistical power at n = 34. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
 
@@ -44,7 +53,7 @@ There are several distinct subtypes of GABAergic interneurons, each with a diffe
 - **PV+ neurons (parvalbumin-positive)**: Fast-spiking basket and chandelier cells. Basket cells wrap around the soma (cell body) of excitatory neurons; chandelier cells target the axon initial segment, the precise site where action potentials are generated. This gives PV+ neurons powerful control over whether excitatory neurons fire at all.
 - **SST+ neurons (somatostatin-positive)**: Martinotti cells that extend long processes to the upper layers of the cortex, targeting the apical dendrites of excitatory neurons. They regulate long-range inputs arriving from other brain regions.
 - **VIP+ neurons (VIP-positive)**: A class that primarily targets other interneurons rather than excitatory cells directly. By inhibiting inhibitory neurons, VIP+ cells can effectively disinhibit excitatory circuits.
-- **CR+ neurons (calretinin-positive)**: Also largely target other interneurons. Generally considered to be spared in schizophrenia, which is itself a key distinguishing feature of the pathology [1].
+- **CR+ neurons (calretinin-positive)**: CR+ neurons also largely target other interneurons and are generally considered to be spared in schizophrenia, which is itself a key distinguishing feature of the pathology [1].
 - **CB+ neurons (calbindin-positive)**: A calcium-binding protein marker expressed in a subset of interneurons, including some SST+ cells in the DLPFC. Used as a co-expression marker in this analysis; largely overlaps with SST+ in cortical layers II-III [1, 10].
 
 PV+ and SST+ interneurons both originate from the medial ganglionic eminence (MGE) during neurodevelopment, making them potentially vulnerable to shared developmental disruptions, whereas CR+ neurons originate from the caudal ganglionic eminence (CGE) and follow a distinct trajectory [1].
@@ -164,7 +173,7 @@ This figure shows Pearson correlation matrices for all pairwise combinations of 
 
 **In controls (right panel):** PVALB (purple, PV+) is relatively independent of the other markers. Its correlations with CALB1, NPY, and PENK range from roughly -0.30 to 0.35, close to zero. This makes biological sense: PV+ and SST+ interneurons serve distinct functional roles [1].
 
-**In schizophrenia (left panel):** that independence is directionally reduced. At n = 15, PVALB shows elevated correlations with GAD1 (r = 0.56), NPY (r = 0.58), and SST (r = 0.25) relative to controls, and all markers shift toward co-varying together.
+**In schizophrenia (left panel):** that independence is directionally reduced. In the SCZ group (n = 15), PVALB shows elevated correlations with GAD1 (r = 0.56), NPY (r = 0.58), and SST (r = 0.25) relative to controls, and all markers shift toward co-varying together [10].
 
 **What this means:** In healthy cortex, PV+ and SST+ interneurons maintain relatively independent expression profiles, reflecting their distinct functional roles. In schizophrenia, that separation collapses and all GABAergic markers rise and fall together, pointing to coordinated rather than subtype-specific dysregulation, and directly addressing Research Question 1.
 
@@ -215,7 +224,7 @@ Note: enrichment was tested against the curated subtype labels defined in this p
 | Does clustering recover diagnosis? | No (ARI close to 0). Technical and biological covariates dominate variance [5]. |
 | Do GABAergic subtypes co-vary independently? | No. In SCZ, all markers co-vary as a single module. PV+ independence from SST+ is lost. |
 | Which genes are differentially expressed? | 3 genes (FDR < 0.1): PVALB (PV+, down), RGS4 (down), CARTPT (up). Power limited at n = 34 [7]. |
-| Which subtypes are enriched in DEGs? | No significant enrichment (n = 34 insufficient power). PVALB is the only interneuron marker significant; PV+ 1/1 but Fisher p = 1.0 with one gene [6]. |
+| Which subtypes are enriched in DEGs? | No significant enrichment; power is insufficient at n = 34. PVALB is the only DEG among interneuron markers [6]. |
 
 ---
 
@@ -262,7 +271,7 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 - The 48-gene panel is curated and not unbiased; enrichment results reflect prior biological knowledge built into the gene selection [6]
 - Of the 58 target genes from Guillozet-Bongaarts et al., 50 were included in TARGET_GENES; of those, CHRNA7 and PRODH were absent from the GPL570 platform and excluded, leaving 48 genes analyzed [2]
 - No batch correction was applied (all 34 DLPFC donors fall within one processing cohort); RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates and could not be controlled for [5]
-- 75% of SCZ donors in the Guillozet-Bongaarts et al. (2014) Allen Brain Atlas cohort had antipsychotic evidence at time of death [2]; medication exposure rates for the Lanz et al. GSE53987 cohort are not reported in the paper, and the degree to which medication confounds expression differences in either cohort cannot be determined without explicit records
+- Antipsychotic medication exposure rates for the GSE53987 cohort are not reported in the Lanz et al. paper; medication confounding cannot be ruled out without explicit records [2]
 - Pathway enrichment was tested against manually curated interneuron subtype labels only, not against external databases (KEGG, GO, Reactome) [6]
 - Microarray measures relative RNA abundance across thousands of probes simultaneously but lacks the sensitivity of RNA-seq for lowly expressed genes
 - Results are correlational; no causal inference is possible from observational postmortem data
@@ -292,7 +301,7 @@ Standard FDR thresholds are calibrated for genome-wide screening of ~20,000 gene
 In healthy controls, PV+ and SST+ interneurons serve distinct functional roles and show relatively independent expression profiles. In schizophrenia, that independence is directionally reduced and all GABAergic markers shift toward co-varying together, suggesting a more generalized failure of cortical inhibition rather than a subtype-specific deficit.
 
 **Q: PVALB was the only significant interneuron marker. Does that mean only PV+ neurons are affected?**
-Not necessarily. PVALB, GAD1, SST, NPY, and PENK all show consistent directional downregulation, directly replicating Guillozet-Bongaarts et al. (2014). The other genes do not survive FDR correction at n=34, reflecting limited statistical power, not absence of effect.
+Not necessarily. PVALB, GAD1, SST, NPY, and PENK all show consistent directional downregulation, consistent with Guillozet-Bongaarts et al. (2014). The other genes do not survive FDR correction at n=34, reflecting limited statistical power, not absence of effect.
 
 **Q: Could antipsychotic medication confound the PVALB downregulation finding?**
 Yes, this is a legitimate limitation acknowledged in the limitations section. Chronic antipsychotic use affects gene expression, and medication exposure cannot be controlled for without explicit records, which were not available for GSE53987. This is a known limitation across the postmortem transcriptomics field.
