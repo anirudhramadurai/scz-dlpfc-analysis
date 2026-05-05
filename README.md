@@ -195,7 +195,7 @@ A volcano plot is a standard visualization for differential expression results. 
 
 ![Fold-change bar chart](figures/fig7_barplot_fc.png)
 
-The top 20 genes ranked by absolute effect size (|log2FC|), sorted from most negative at the bottom to most positive at the top. Stars mark genes significant after FDR correction [7]. Raw p-values are shown in the right margin. Blue bars = lower in schizophrenia; red = higher in schizophrenia. PVALB, NPY, SST, PENK, and GAD1 all show consistent downregulation, directionally replicating the findings of Guillozet-Bongaarts et al. (2014) [2].
+The top 20 genes ranked by absolute effect size (|log2FC|), sorted from most negative at the bottom to most positive at the top. Stars mark genes significant after FDR correction [7]. Raw p-values are shown in the right margin. Blue bars = lower in schizophrenia; red = higher in schizophrenia. PVALB, NPY, SST, PENK, and GAD1 all show consistent downregulation, consistent with the findings of Guillozet-Bongaarts et al. (2014) [2].
 
 ---
 
