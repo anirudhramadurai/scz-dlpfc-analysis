@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **Dataset** | GSE53987 (NCBI GEO): 15 SCZ vs. 19 control postmortem DLPFC donors (n = 34) |
-| **DEGs** | 3 genes at FDR < 0.1: PVALB (down, padj = 0.011), RGS4 (down, padj = 0.006), CARTPT (up, padj = 0.030) |
+| **DEGs** | 3 genes at FDR < 0.1: PVALB (down, padj = 0.011), RGS4 (down, padj = 0.006, subtype unassigned), CARTPT (up, padj = 0.030) |
 | **Clustering** | ARI near 0 -- diagnosis not recovered (expected in postmortem transcriptomics) |
 | **Key finding** | Co-expression independence between PV+ and SST+ markers collapses in schizophrenia |
 
@@ -17,7 +17,7 @@
 
 Using publicly available postmortem brain microarray data (GSE53987, 15 schizophrenia vs. 19 control DLPFC samples, n = 34), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. Unsupervised clustering did not recover diagnosis (an ARI near 0), which is consistent with the postmortem transcriptomics literature.
 
-The more interesting result came from co-expression analysis: the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia, with all markers co-varying as a single module rather than showing subtype-specific patterns. Three genes were significantly differentially expressed (FDR < 0.1): PVALB (PV+, downregulated, padj = 0.011), RGS4 (downregulated, padj = 0.006), and CARTPT (upregulated, padj = 0.030). No interneuron subtype reached significance in enrichment analysis at this sample size, consistent with limited statistical power at n = 34. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
+The more interesting result came from co-expression analysis: the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia, with all markers co-varying as a single module rather than showing subtype-specific patterns. Three genes were significantly differentially expressed (FDR < 0.1): PVALB (PV+, downregulated, padj = 0.011), RGS4 (downregulated, padj = 0.006, subtype unassigned), and CARTPT (upregulated, padj = 0.030). No interneuron subtype reached significance in enrichment analysis at this sample size, consistent with limited statistical power at n = 34. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
 
 
 ---
@@ -290,7 +290,7 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 No. This is the expected and honest result. Postmortem brain transcriptomics is well-known to be dominated by technical variables like RNA quality and postmortem interval, and biological covariates like age and medication history. Failure to cluster by diagnosis is consistent with the published literature and validates that the pipeline is not producing artificially clean results.
 
 **Q: Why only 3 differentially expressed genes? An earlier version showed 15. What changed?**
-The earlier 15-gene result came from accidentally pooling DLPFC, hippocampus, and striatum samples together. The apparent batch effect in that analysis was real biological differences between brain regions, not a technical artifact. After filtering to DLPFC-only samples (n=34), 3 genes survive FDR correction. Fewer but correct results are better than more spurious ones.
+The earlier 15-gene result came from accidentally pooling DLPFC, hippocampus, and striatum samples together. The apparent batch effect in that analysis was real biological differences between brain regions, not a technical artifact. After filtering to DLPFC-only samples (n = 34), 3 genes survive FDR correction. Fewer but correct results are better than more spurious ones.
 
 **Q: Why is FDR < 0.1 used instead of the more standard < 0.05?**
 Standard FDR thresholds are calibrated for genome-wide screening of ~20,000 genes. This analysis tests only 48 curated genes, which carries far less multiple testing burden. FDR < 0.1 is appropriate at this scale and is explicitly justified in the pipeline.
@@ -299,7 +299,7 @@ Standard FDR thresholds are calibrated for genome-wide screening of ~20,000 gene
 In healthy controls, PV+ and SST+ interneurons serve distinct functional roles and show relatively independent expression profiles. In schizophrenia, that independence is directionally reduced and all GABAergic markers shift toward co-varying together, suggesting a more generalized failure of cortical inhibition rather than a subtype-specific deficit.
 
 **Q: PVALB was the only significant interneuron marker. Does that mean only PV+ neurons are affected?**
-Not necessarily. PVALB, GAD1, SST, NPY, and PENK all show consistent directional downregulation, consistent with Guillozet-Bongaarts et al. (2014). The other genes do not survive FDR correction at n=34, reflecting limited statistical power, not absence of effect.
+Not necessarily. PVALB, GAD1, SST, NPY, and PENK all show consistent directional downregulation, consistent with Guillozet-Bongaarts et al. (2014). The other genes do not survive FDR correction at n = 34, reflecting limited statistical power, not absence of effect.
 
 **Q: Could antipsychotic medication confound the PVALB downregulation finding?**
 Yes, this is a legitimate limitation acknowledged in the limitations section. Chronic antipsychotic use affects gene expression, and medication exposure cannot be controlled for without explicit records, which were not available for GSE53987. This is a known limitation across the postmortem transcriptomics field.
