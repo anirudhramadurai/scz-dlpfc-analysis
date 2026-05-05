@@ -203,15 +203,13 @@ The top 20 genes ranked by absolute effect size (|log2FC|), sorted from most neg
 
 ![Pathway enrichment by interneuron subtype](figures/fig8_pathway_enrichment.png)
 
-Over-representation analysis (ORA) tests whether a particular category of genes is more represented among the differentially expressed genes than would be expected by chance, given the background DEG rate across the full panel [6]. The test used here is Fisher's exact test, a standard nonparametric test for 2x2 contingency tables. For each subtype, we ask: of all the genes in that category, what fraction are DEGs, and is that fraction significantly higher than the background rate?
+Over-representation analysis (ORA) tests whether a particular category of genes is more represented among the differentially expressed genes than would be expected by chance, given the background DEG rate across the full panel [6]. The test used here is Fisher's exact test, a standard nonparametric test for 2×2 contingency tables. For each subtype, we ask: of all the genes in that category, what fraction are DEGs, and is that fraction significantly higher than the background rate?
 
 The dashed vertical line shows the background DEG rate across the full 48-gene panel (6%). No subtype reached significance; power is limited at n = 34.
 
-**PVALB (PV+)** is the only interneuron marker to reach significance. SST, NPY, and PENK show the expected directional trends (all downregulated) but do not survive FDR correction at n = 34.
+At the individual gene level, PVALB is the only DEG among interneuron markers. SST, NPY, and PENK show the expected directional trends (all downregulated) but do not survive FDR correction at n = 34.
 
-**Excitatory neurons: 0 out of 4 genes.** No enrichment, consistent with the effect being specific to inhibitory interneurons.
-
-No subtype reaches formal significance at this sample size. The directional pattern (PV+ affected, excitatory unaffected) is consistent with Research Question 2 but cannot be confirmed statistically at n = 34.
+At the subtype enrichment level, no category reaches significance. Excitatory neurons show 0 out of 4 genes significant, consistent with the effect being specific to inhibitory interneurons. The directional pattern (PV+ affected, excitatory unaffected) is consistent with Research Question 2 but cannot be confirmed statistically at n = 34.
 
 Note: enrichment was tested against the curated subtype labels defined in this pipeline, not against external pathway databases such as KEGG or GO [6]. External database enrichment was not implemented.
 
