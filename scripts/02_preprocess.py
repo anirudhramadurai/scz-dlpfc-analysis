@@ -52,9 +52,6 @@ warnings.filterwarnings("ignore")
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 
-# Interneuron subtype annotations for the gene panel.
-# Based on cell-type marker categories from Guillozet-Bongaarts et al. (2014)
-# and Dienel & Lewis (2019).
 INTERNEURON_SUBTYPES = {
     "PVALB": "PV+",
     "SST": "SST+",
@@ -86,81 +83,114 @@ INTERNEURON_SUBTYPES = {
     "ERBB4": "Risk/Signaling",
     "ERBB3": "Risk/Signaling",
 }
-DEFAULT_SUBTYPE = "SCZ candidate"
+
+DEFAULT_SUBTYPE    = "SCZ candidate"
 GABAERGIC_SUBTYPES = {"PV+", "SST+", "VIP+", "CB+", "Pan-GABA"}
 
 
-def load_raw() -> pd.DataFrame:
+def load_raw():
     path = DATA_DIR / "allen_scz_raw.csv"
     if not path.exists():
-        raise FileNotFoundError(f"{path} not found. Run 01_fetch_geo.py first.")
+        raise FileNotFoundError(str(path) + " not found. Run 01_fetch_geo.py first.")
     df = pd.read_csv(path)
-    print(f"Loaded: {df.shape[0]:,} records")
+    print("Loaded: " + str(df.shape[0]) + " records")
     return df
 
 
-def filter_scz_control(df: pd.DataFrame) -> pd.DataFrame:
+def filter_scz_control(df):
     """
     Keep only Schizophrenia and Control donors.
-
     GSE53987 contains four diagnostic groups: Schizophrenia, Control,
     Bipolar disorder, and Major depressive disorder. Including the non-SCZ
     psychiatric groups would confound the primary SCZ vs Control comparison
     and reduce statistical power for differential expression analysis.
     """
     before = df["donor_id"].nunique()
-    df = df[df["diagnosis"].isin(["Schizophrenia", "Control"])].copy()
-    after = df["donor_id"].nunique()
-    n_scz = df[df["diagnosis"] == "Schizophrenia"]["donor_id"].nunique()
+    df     = df[df["diagnosis"].isin(["Schizophrenia", "Control"])].copy()
+    after  = df["donor_id"].nunique()
+    n_scz  = df[df["diagnosis"] == "Schizophrenia"]["donor_id"].nunique()
     n_ctrl = df[df["diagnosis"] == "Control"]["donor_id"].nunique()
-    print(f"\nFiltered to SCZ + Control: {before} -> {after} donors")
-    print(f"  SCZ: {n_scz}   Control: {n_ctrl}")
+
+    print("\nFiltered to SCZ + Control: " + str(before) + " -> " + str(after) + " donors")
+    print("  SCZ: " + str(n_scz) + "   Control: " + str(n_ctrl))
     return df
 
 
-def transform(df: pd.DataFrame) -> pd.DataFrame:
+def zscore_within_gene(x):
+    """
+    Compute z-score for a single gene's expression values across donors.
+    Used inside a groupby-transform call in transform().
+    The 1e-9 term prevents division by zero for genes with zero variance.
+    """
+    return (x - x.mean()) / (x.std() + 1e-9)
+
+
+def transform(df):
     """Log2 transform and flag outliers (> 3 SD within gene)."""
-    primary = next(
-        (c for c in ["cell_density","staining_intensity","expression_density"]
-         if c in df.columns and df[c].notna().sum() > 0),
-        None
-    )
+
+    # Search for the first valid expression column.
+    # A flag stops the search once we find one with actual data.
+    candidate_cols = ["cell_density", "staining_intensity", "expression_density"]
+    primary        = None
+    found_primary  = False
+
+    for col in candidate_cols:
+        if col in df.columns and df[col].notna().sum() > 0 and not found_primary:
+            primary       = col
+            found_primary = True
+
     if primary is None:
         raise ValueError("No valid expression column found.")
+
     df = df.dropna(subset=[primary]).copy()
+
+    # Log2 transform: clip to 0 first so we never take log2 of a negative number.
+    # Adding 1 before log2 (log2(x+1)) avoids log2(0) = -infinity for zero values.
     df["log2_expr"] = np.log2(df[primary].clip(lower=0) + 1)
-    z = df.groupby("gene")["log2_expr"].transform(
-        lambda x: (x - x.mean()) / (x.std() + 1e-9)
-    )
+
+    # Compute a z-score per gene across donors to identify extreme outliers.
+    # groupby("gene").transform applies zscore_within_gene to each gene's
+    # values separately, returning a Series with the same index as df.
+    z = df.groupby("gene")["log2_expr"].transform(zscore_within_gene)
+
     df["is_outlier"] = z.abs() > 3
-    print(f"\nTransformed: {len(df):,} records  |  outliers flagged: {df['is_outlier'].sum()}")
+
+    print("\nTransformed: " + str(len(df)) + " records  |  outliers flagged: "
+          + str(df["is_outlier"].sum()))
     return df
 
 
-def build_pivot(df: pd.DataFrame) -> tuple:
+def build_pivot(df):
     """Aggregate to donor x gene matrix (mean log2 expression per donor-gene pair)."""
-    agg = df.groupby(["donor_id","gene"])["log2_expr"].mean().reset_index()
+
+    # Average across any replicate probes for the same donor-gene pair.
+    agg   = df.groupby(["donor_id", "gene"])["log2_expr"].mean().reset_index()
     pivot = agg.pivot(index="donor_id", columns="gene", values="log2_expr")
+
+    # Fill any missing gene-donor combinations with the gene's mean across donors.
     pivot = pivot.fillna(pivot.mean())
 
-    meta_cols = [c for c in ["donor_id","diagnosis","age_days","sex","hemisphere"]
-                 if c in df.columns]
+    # Build a metadata DataFrame keeping only columns that actually exist.
+    meta_cols = []
+    for col in ["donor_id", "diagnosis", "age_days", "sex", "hemisphere"]:
+        if col in df.columns:
+            meta_cols.append(col)
+
     meta = (
         df[meta_cols].drop_duplicates("donor_id")
                      .set_index("donor_id")
                      .reindex(pivot.index)
     )
+
     return pivot, meta
 
 
-def correct_batch(pivot: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
+def correct_batch(pivot, meta):
     """
     Linear batch correction by regressing out donor processing cohort.
-
     Batch is inferred from the GSM ID prefix:
-      GSM1304xxx → Batch A
-      GSM1305xxx → Batch B
-
+      GSM1304xxx -> Batch A
+      GSM1305xxx -> Batch B
     For each gene: fit expr ~ C(batch), take residuals + intercept.
     This removes the systematic between-batch expression shift while
     preserving within-batch biological variation.
@@ -173,39 +203,52 @@ def correct_batch(pivot: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
         return pivot
 
     print("\nDetecting batches from donor ID prefix...")
-    batch = pd.Series(
-        [("B" if d.startswith("GSM1305") else "A") for d in pivot.index],
-        index=pivot.index,
-        name="batch"
-    )
-    counts = batch.value_counts()
-    print(f"  Batch A (GSM1304): {counts.get('A', 0)} donors")
-    print(f"  Batch B (GSM1305): {counts.get('B', 0)} donors")
 
+    # Assign each donor to a batch based on their GSM ID prefix.
+    # GSM1304xxx = Batch A, GSM1305xxx = Batch B.
+    batch_labels = []
+    for d in pivot.index:
+        if d.startswith("GSM1305"):
+            batch_labels.append("B")
+        else:
+            batch_labels.append("A")
+
+    batch  = pd.Series(batch_labels, index=pivot.index, name="batch")
+    counts = batch.value_counts()
+
+    print("  Batch A (GSM1304): " + str(counts.get("A", 0)) + " donors")
+    print("  Batch B (GSM1305): " + str(counts.get("B", 0)) + " donors")
+
+    # If all donors are in the same batch, regression has nothing to correct.
     if counts.nunique() == 1 or len(counts) < 2:
         print("  Only one batch detected - skipping correction")
         return pivot
 
-    corrected = pivot.copy()
+    corrected   = pivot.copy()
     n_corrected = 0
+
     for gene in pivot.columns:
         tmp = pd.DataFrame({"expr": pivot[gene], "batch": batch}).dropna()
-        if tmp["batch"].nunique() < 2:
-            continue
-        try:
-            model = ols("expr ~ C(batch)", data=tmp).fit()
-            residuals = model.resid
-            intercept = model.params["Intercept"]
-            corrected.loc[tmp.index, gene] = residuals + intercept
-            n_corrected += 1
-        except Exception:
-            pass
 
-    print(f"  Batch corrected: {n_corrected} genes")
+        # Only attempt correction if both batches have data for this gene.
+        if tmp["batch"].nunique() >= 2:
+            try:
+                # Fit a linear model: expression ~ batch label.
+                # The residuals capture expression variation not explained by batch.
+                # Adding back the intercept re-centers residuals at the grand mean.
+                model     = ols("expr ~ C(batch)", data=tmp).fit()
+                residuals = model.resid
+                intercept = model.params["Intercept"]
+                corrected.loc[tmp.index, gene] = residuals + intercept
+                n_corrected = n_corrected + 1
+            except Exception:
+                pass  # if the model fails for a gene, leave it uncorrected
+
+    print("  Batch corrected: " + str(n_corrected) + " genes")
     return corrected
 
 
-def zscore(pivot: pd.DataFrame) -> pd.DataFrame:
+def zscore(pivot):
     """Z-score normalize: each gene has mean=0, std=1 across donors."""
     scaler = StandardScaler()
     return pd.DataFrame(
@@ -215,13 +258,21 @@ def zscore(pivot: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def build_gene_annotations(genes: list) -> pd.DataFrame:
+def build_gene_annotations(genes):
     """Annotate each gene with interneuron subtype label."""
+
+    subtypes      = []
+    is_gabaergic  = []
+
+    for gene in genes:
+        subtype = INTERNEURON_SUBTYPES.get(gene, DEFAULT_SUBTYPE)
+        subtypes.append(subtype)
+        is_gabaergic.append(subtype in GABAERGIC_SUBTYPES)
+
     return pd.DataFrame({
-        "gene": genes,
-        "subtype": [INTERNEURON_SUBTYPES.get(g, DEFAULT_SUBTYPE) for g in genes],
-        "is_gabaergic": [INTERNEURON_SUBTYPES.get(g,"") in GABAERGIC_SUBTYPES
-                         for g in genes],
+        "gene":         genes,
+        "subtype":      subtypes,
+        "is_gabaergic": is_gabaergic,
     })
 
 
@@ -230,7 +281,8 @@ def save(expr_z, expr_log, meta, gene_annot):
     expr_log.to_csv(DATA_DIR / "expression_matrix_raw.csv")
     meta.to_csv(DATA_DIR / "donor_metadata.csv")
     gene_annot.to_csv(DATA_DIR / "gene_annotations.csv", index=False)
-    print(f"\nSaved to {DATA_DIR}/")
+
+    print("\nSaved to " + str(DATA_DIR) + "/")
     print("  expression_matrix.csv      (batch-corrected, z-scored)")
     print("  expression_matrix_raw.csv  (batch-corrected, log2)")
     print("  donor_metadata.csv")
@@ -245,23 +297,27 @@ def main():
     df = load_raw()
     df = filter_scz_control(df)
     df = transform(df)
+
     pivot, meta = build_pivot(df)
+    print("\nExpression matrix before correction: " + str(pivot.shape))
 
-    print(f"\nExpression matrix before correction: {pivot.shape}")
-
-    # correct_batch() detects batch from GSM ID prefix and applies linear regression correction.
-    # With DLPFC-only samples (n=34), all donors fall in GSM1304xxx: one batch detected,
-    # correction is skipped automatically. Function retained for use with multi-region data.
+    # correct_batch() detects batch from GSM ID prefix and applies linear
+    # regression correction. With DLPFC-only samples (n=34), all donors fall
+    # in GSM1304xxx: one batch detected, correction is skipped automatically.
+    # Function retained for use with multi-region data.
     pivot_bc = correct_batch(pivot, meta)
-    expr_z = zscore(pivot_bc)
-    expr_log = pivot_bc   # keep log2 batch-corrected for DE analysis
+
+    expr_z    = zscore(pivot_bc)
+    expr_log  = pivot_bc  # keep log2 batch-corrected for DE analysis
 
     gene_annot = build_gene_annotations(list(expr_z.columns))
+
     save(expr_z, expr_log, meta, gene_annot)
 
     if "diagnosis" in meta.columns:
-        for k, v in meta["diagnosis"].value_counts().items():
-            print(f"  {k}: {v} donors")
+        counts = meta["diagnosis"].value_counts()
+        for label in counts.index:
+            print("  " + str(label) + ": " + str(counts[label]) + " donors")
 
     print("\nDone. Run 03_cluster_analysis.py next.")
 

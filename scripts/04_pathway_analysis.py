@@ -63,35 +63,33 @@ import warnings
 warnings.filterwarnings("ignore")
 
 DATA_DIR = Path(__file__).parent.parent / "data"
-FIG_DIR = Path(__file__).parent.parent / "figures"
-OUT_DIR = Path(__file__).parent.parent / "output"
+FIG_DIR  = Path(__file__).parent.parent / "figures"
+OUT_DIR  = Path(__file__).parent.parent / "output"
 FIG_DIR.mkdir(exist_ok=True)
 OUT_DIR.mkdir(exist_ok=True)
 
-# Relaxed thresholds - justified for focused 48-gene curated panel.
-# See module docstring for rationale.
-ALPHA = 0.10
-MIN_FC = 0.10
+ALPHA   = 0.10
+MIN_FC  = 0.10
 
-SCZ_COLOR = "#C1392B"
+SCZ_COLOR  = "#C1392B"
 CTRL_COLOR = "#2980B9"
 
 SUBTYPE_COLORS = {
-    "PV+": "#7B2D8B",
-    "SST+": "#2471A3",
-    "VIP+": "#1E8449",
-    "CB+": "#D4AC0D",
-    "Pan-GABA": "#BA4A00",
-    "Excitatory": "#7D3C98",
+    "PV+":             "#7B2D8B",
+    "SST+":            "#2471A3",
+    "VIP+":            "#1E8449",
+    "CB+":             "#D4AC0D",
+    "Pan-GABA":        "#BA4A00",
+    "Excitatory":      "#7D3C98",
     "Oligodendrocyte": "#566573",
-    "Risk/Signaling": "#909497",
-    "Synaptic": "#B2BABB",
-    "SCZ candidate": "#D5D8DC",
+    "Risk/Signaling":  "#909497",
+    "Synaptic":        "#B2BABB",
+    "SCZ candidate":   "#D5D8DC",
 }
 
 plt.rcParams.update({
     "figure.facecolor": "white",
-    "axes.facecolor": "white",
+    "axes.facecolor":   "white",
     "axes.spines.top":   False,
     "axes.spines.right": False,
     "axes.linewidth":    0.8,
@@ -103,8 +101,8 @@ plt.rcParams.update({
 
 
 def load():
-    raw = pd.read_csv(DATA_DIR / "expression_matrix_raw.csv", index_col=0)
-    meta = pd.read_csv(DATA_DIR / "donor_metadata.csv", index_col=0)
+    raw   = pd.read_csv(DATA_DIR / "expression_matrix_raw.csv", index_col=0)
+    meta  = pd.read_csv(DATA_DIR / "donor_metadata.csv",        index_col=0)
     genes = pd.read_csv(DATA_DIR / "gene_annotations.csv")
     return raw, meta.reindex(raw.index), genes
 
@@ -115,87 +113,102 @@ def differential_expression(raw, meta):
     Returns DataFrame with log2FC, p-value, adjusted p-value, and significance flag.
     """
     print("\nDifferential expression")
-    scz_idx = meta.index[meta["diagnosis"] == "Schizophrenia"]
+
+    scz_idx  = meta.index[meta["diagnosis"] == "Schizophrenia"]
     ctrl_idx = meta.index[meta["diagnosis"] == "Control"]
-    print(f"  SCZ: {len(scz_idx)}  |  Control: {len(ctrl_idx)}")
+
+    print("  SCZ: " + str(len(scz_idx)) + "  |  Control: " + str(len(ctrl_idx)))
 
     rows = []
     for gene in raw.columns:
-        scz_v = raw.loc[raw.index.intersection(scz_idx),  gene].dropna()
+        scz_v  = raw.loc[raw.index.intersection(scz_idx),  gene].dropna()
         ctrl_v = raw.loc[raw.index.intersection(ctrl_idx), gene].dropna()
-        if len(scz_v) < 3 or len(ctrl_v) < 3:
-            continue
-        t, p = stats.ttest_ind(scz_v, ctrl_v, equal_var=False)
-        rows.append({"gene": gene,
-                     "mean_scz": round(scz_v.mean(), 4),
-                     "mean_ctrl": round(ctrl_v.mean(), 4),
-                     "log2fc": round(scz_v.mean() - ctrl_v.mean(), 4),
-                     "pval": p,
-                     "n_scz": len(scz_v),
-                     "n_ctrl": len(ctrl_v)})
+
+        # Need at least 3 donors per group to run a t-test.
+        if len(scz_v) >= 3 and len(ctrl_v) >= 3:
+            t, p = stats.ttest_ind(scz_v, ctrl_v, equal_var=False)
+            rows.append({
+                "gene":      gene,
+                "mean_scz":  round(scz_v.mean(), 4),
+                "mean_ctrl": round(ctrl_v.mean(), 4),
+                "log2fc":    round(scz_v.mean() - ctrl_v.mean(), 4),
+                "pval":      p,
+                "n_scz":     len(scz_v),
+                "n_ctrl":    len(ctrl_v),
+            })
 
     de = pd.DataFrame(rows).sort_values("pval").reset_index(drop=True)
-    m = len(de)
+    m  = len(de)
+
     de["rank"] = range(1, m + 1)
-    # Benjamini-Hochberg: padj = p * m / rank, clipped at 1.0, monotonicity enforced
-    de["padj"] = (de["pval"] * m / de["rank"]).clip(upper=1.0)
-    de["padj"] = de["padj"][::-1].cummin()[::-1].round(4)
+
+    # Benjamini-Hochberg FDR: multiply each sorted p-value by m/rank,
+    # clip at 1, then enforce monotonicity from the largest rank downward
+    # so that padj[i] <= padj[i+1] (cummin on the reversed series).
+    de["padj"]        = (de["pval"] * m / de["rank"]).clip(upper=1.0)
+    de["padj"]        = de["padj"][::-1].cummin()[::-1].round(4)
     de["significant"] = (de["padj"] < ALPHA) & (de["log2fc"].abs() >= MIN_FC)
 
     sig = de["significant"].sum()
-    print(f"  Genes tested: {m}  |  Significant (FDR<{ALPHA}, |FC|>={MIN_FC}): {sig}")
+    print("  Genes tested: " + str(m) +
+          "  |  Significant (FDR<" + str(ALPHA) +
+          ", |FC|>=" + str(MIN_FC) + "): " + str(sig))
+
     if sig:
-        print(f"  Hits: {de[de['significant']]['gene'].tolist()}")
+        print("  Hits: " + str(de[de["significant"]]["gene"].tolist()))
+
     de.to_csv(OUT_DIR / "differential_expression.csv", index=False)
     return de
 
 
-# Fig 6: Volcano
 def plot_volcano(de, genes):
     """
     Volcano plot: log2FC (x) vs -log10(p-value) (y).
     Significant genes labeled and colored by interneuron subtype.
     """
     print("\nFig 6: Volcano plot")
+
     g2s = dict(zip(genes["gene"], genes["subtype"]))
 
     fig, ax = plt.subplots(figsize=(9, 7))
 
-    # Non-significant: small gray
+    # Non-significant genes: small gray dots.
     ns = de[~de["significant"]]
     ax.scatter(ns["log2fc"], -np.log10(ns["pval"] + 1e-10),
                c="#CCCCCC", s=25, alpha=0.55, zorder=2)
 
-    # Significant: colored by subtype, larger
+    # Significant genes: larger dots colored by subtype.
     sig = de[de["significant"]]
-    for _, row in sig.iterrows():
+    for i in range(len(sig)):
+        row   = sig.iloc[i]
         color = SUBTYPE_COLORS.get(g2s.get(row["gene"], "SCZ candidate"), "#999")
         ax.scatter(row["log2fc"], -np.log10(row["pval"] + 1e-10),
                    c=color, s=90, alpha=0.95, zorder=4,
                    edgecolors="white", linewidths=0.7)
 
-    # Manual label offsets tuned to avoid overlaps
+    # Manual label offsets tuned to avoid overlaps.
     LABEL_OFFSETS = {
-        "NPY": (-45, -18),
-        "SST": (-42, 6),
-        "PVALB": (10, 6),
-        "PENK": (-42, 6),
-        "GAD1": (10, -14),
-        "CALB2": (22, 6),
-        "CNR1": (-42, -28),
-        "PCP4": (-42, 6),
+        "NPY":     (-45, -18),
+        "SST":     (-42,   6),
+        "PVALB":   ( 10,   6),
+        "PENK":    (-42,   6),
+        "GAD1":    ( 10, -14),
+        "CALB2":   ( 22,   6),
+        "CNR1":    (-42, -28),
+        "PCP4":    (-42,   6),
         "RASGRF2": (-55, -14),
-        "SYNPR": (10, 6),
-        "TAC1": (-42, -14),
-        "FEZ1": (10, 6),
-        "SNCG": (10, -14),
-        "NOS1AP": (10, 6),
-        "CLDN5": (-42, 6),
+        "SYNPR":   ( 10,   6),
+        "TAC1":    (-42, -14),
+        "FEZ1":    ( 10,   6),
+        "SNCG":    ( 10, -14),
+        "NOS1AP":  ( 10,   6),
+        "CLDN5":   (-42,   6),
     }
 
-    for _, row in sig.iterrows():
-        x0 = row["log2fc"]
-        y0 = -np.log10(row["pval"] + 1e-10)
+    for i in range(len(sig)):
+        row   = sig.iloc[i]
+        x0    = row["log2fc"]
+        y0    = -np.log10(row["pval"] + 1e-10)
         color = SUBTYPE_COLORS.get(g2s.get(row["gene"], "SCZ candidate"), "#333")
         xoff, yoff = LABEL_OFFSETS.get(row["gene"], (10, 6))
         ax.annotate(
@@ -208,13 +221,13 @@ def plot_volcano(de, genes):
 
     y_thresh = -np.log10(ALPHA)
     ax.axhline(y_thresh, color="#888888", lw=0.9, ls="--", alpha=0.7)
-    ax.axvline(MIN_FC, color="#CCCCCC", lw=0.8, ls=":", alpha=0.7)
+    ax.axvline( MIN_FC, color="#CCCCCC", lw=0.8, ls=":", alpha=0.7)
     ax.axvline(-MIN_FC, color="#CCCCCC", lw=0.8, ls=":", alpha=0.7)
-    ax.axvline(0, color="#AAAAAA", lw=0.8, alpha=0.4)
+    ax.axvline(0,       color="#AAAAAA", lw=0.8, alpha=0.4)
 
     x_range = de["log2fc"].max() - de["log2fc"].min()
     ax.text(de["log2fc"].min() + 0.03 * x_range, y_thresh + 0.12,
-            f"FDR = {ALPHA}", fontsize=8, color="#888888", va="bottom")
+            "FDR = " + str(ALPHA), fontsize=8, color="#888888", va="bottom")
 
     ax.text(0.98, 0.06, "Higher in SCZ", transform=ax.transAxes,
             fontsize=9, color=SCZ_COLOR, ha="right", va="bottom")
@@ -225,80 +238,130 @@ def plot_volcano(de, genes):
     ax.set_ylabel("-log10(p-value)", fontsize=11)
     ax.set_title(
         "Differential Expression - DLPFC, Schizophrenia vs Control\n"
-        f"FDR < {ALPHA}  |  |log2FC| >= {MIN_FC}  |  Color = interneuron subtype",
+        "FDR < " + str(ALPHA) +
+        "  |  |log2FC| >= " + str(MIN_FC) +
+        "  |  Color = interneuron subtype",
         fontsize=11
     )
 
-    present = {g2s.get(r["gene"], "") for _, r in sig.iterrows()}
+    # Build the set of subtypes present among significant genes.
+    present = set()
+    for i in range(len(sig)):
+        present.add(g2s.get(sig.iloc[i]["gene"], ""))
+
     patches = [mpatches.Patch(color="#CCCCCC", label="Not significant")]
-    patches += [mpatches.Patch(color=v, label=k)
-                for k, v in SUBTYPE_COLORS.items() if k in present]
+    for k in SUBTYPE_COLORS:
+        if k in present:
+            patches.append(mpatches.Patch(color=SUBTYPE_COLORS[k], label=k))
+
     ax.legend(handles=patches, title="Subtype", title_fontsize=8,
               frameon=True, edgecolor="#CCCCCC", fontsize=8,
               loc="upper right")
 
     fig.savefig(FIG_DIR / "fig6_volcano.png")
     plt.close()
-    print(f"  {len(sig)} significant genes labelled")
+    print("  " + str(len(sig)) + " significant genes labelled")
 
 
-# Fig 7: Fold-change bar chart
 def plot_fc_barplot(de, genes):
     """
     Top 20 genes by |log2FC|, sorted ascending. Significant genes marked with star.
     P-values printed in right margin. Color = direction (red = up in SCZ).
     """
     print("\nFig 7: FC bar chart")
+
     g2s = dict(zip(genes["gene"], genes["subtype"]))
+
     top = (de.reindex(de["log2fc"].abs().sort_values(ascending=False).index)
              .head(20)
              .sort_values("log2fc"))
-    colors = [SCZ_COLOR if fc > 0 else CTRL_COLOR for fc in top["log2fc"]]
-    edge_colors = ["black" if s else "none" for s in top["significant"]]
+
+    # Build bar colors and edge colors as explicit lists.
+    colors      = []
+    edge_colors = []
+    for fc in top["log2fc"]:
+        if fc > 0:
+            colors.append(SCZ_COLOR)
+        else:
+            colors.append(CTRL_COLOR)
+    for s in top["significant"]:
+        if s:
+            edge_colors.append("black")
+        else:
+            edge_colors.append("none")
+
     fig, ax = plt.subplots(figsize=(10, 9))
     fig.subplots_adjust(right=0.72)
+
     ax.barh(
         range(len(top)), top["log2fc"].values,
         color=colors, alpha=0.82,
         edgecolor=edge_colors, linewidth=0.9,
         height=0.65
     )
+
     ax.set_yticks(range(len(top)))
     ax.set_yticklabels(top["gene"].values, fontsize=9)
-    for tick, gene in zip(ax.get_yticklabels(), top["gene"].values):
+
+    for tick in ax.get_yticklabels():
+        gene = tick.get_text()
         tick.set_color(SUBTYPE_COLORS.get(g2s.get(gene, ""), "#333333"))
         tick.set_fontweight("bold")
-    ax.axvline(0, color="black", lw=0.9)
+
+    ax.axvline(0,       color="black",   lw=0.9)
     ax.axvline( MIN_FC, color="#CCCCCC", lw=0.7, ls="--", alpha=0.7)
     ax.axvline(-MIN_FC, color="#CCCCCC", lw=0.7, ls="--", alpha=0.7)
-    for i, (_, row) in enumerate(top.iterrows()):
+
+    # Significance stars next to bars.
+    for i in range(len(top)):
+        row = top.iloc[i]
         if row["significant"]:
-            x_star = row["log2fc"] + (0.005 if row["log2fc"] > 0 else -0.005)
-            ha_star = "left" if row["log2fc"] > 0 else "right"
+            if row["log2fc"] > 0:
+                x_star = row["log2fc"] + 0.005
+                ha_star = "left"
+            else:
+                x_star = row["log2fc"] - 0.005
+                ha_star = "right"
             ax.text(x_star, i, " *", va="center", ha=ha_star,
                     fontsize=11, color="black")
+
+    # P-value annotations in the right margin.
     x_pval = ax.get_xlim()[1] * 1.05
-    for i, (_, row) in enumerate(top.iterrows()):
-        style = "bold" if row["significant"] else "normal"
-        color = "#333333" if row["significant"] else "#AAAAAA"
-        ax.text(x_pval, i, f"p = {row['pval']:.3f}",
+    for i in range(len(top)):
+        row = top.iloc[i]
+        if row["significant"]:
+            style = "bold"
+            color = "#333333"
+        else:
+            style = "normal"
+            color = "#AAAAAA"
+        ax.text(x_pval, i, "p = " + "%.3f" % row["pval"],
                 va="center", ha="left", fontsize=8,
                 fontweight=style, color=color,
                 transform=ax.transData, clip_on=False)
+
     ax.set_xlabel("log2 Fold Change  (Schizophrenia - Control)", fontsize=11)
     ax.set_title(
         "Top 20 Genes by Effect Size - DLPFC\n"
         "* = significant after FDR correction  |  Gene color = subtype",
         fontsize=11
     )
-    present = {g2s.get(g, "") for g in top["gene"].values}
-    sub_patches = [mpatches.Patch(color=v, label=k)
-                   for k, v in SUBTYPE_COLORS.items()
-                   if k in present and k != "SCZ candidate"]
+
+    # Build the set of subtypes present in the top genes.
+    present = set()
+    for g in top["gene"].values:
+        present.add(g2s.get(g, ""))
+
+    sub_patches = []
+    for k in SUBTYPE_COLORS:
+        if k in present and k != "SCZ candidate":
+            sub_patches.append(mpatches.Patch(color=SUBTYPE_COLORS[k], label=k))
+
     dir_patches = [
-        mpatches.Patch(color=SCZ_COLOR, label="Higher in Schizophrenia"),
+        mpatches.Patch(color=SCZ_COLOR,  label="Higher in Schizophrenia"),
         mpatches.Patch(color=CTRL_COLOR, label="Lower in Schizophrenia"),
     ]
+
     ax.figure.legend(
         handles=sub_patches,
         loc="upper right", bbox_to_anchor=(1.0, 0.88),
@@ -311,68 +374,100 @@ def plot_fc_barplot(de, genes):
         title="Direction", title_fontsize=8,
         frameon=True, edgecolor="#CCCCCC", fontsize=8
     )
+
     fig.savefig(FIG_DIR / "fig7_barplot_fc.png", bbox_inches="tight")
     plt.close()
     print("  Saved -> fig7_barplot_fc.png")
 
 
-# Fig 8: Pathway enrichment
 def plot_pathway_enrichment(de, genes):
     """
     Over-representation analysis (Fisher's exact test) per interneuron subtype.
-
     Tests whether differentially expressed genes are enriched within each
-    manually curated subtype category. Note: this tests against the subtype
-    labels defined in 02_preprocess.py, not against external databases
-    (KEGG, GO, Reactome).
-
+    manually curated subtype category.
     Background DEG rate shown as a dashed reference line.
     """
     print("\nFig 8: Pathway enrichment")
-    g2s = dict(zip(genes["gene"], genes["subtype"]))
+
+    g2s   = dict(zip(genes["gene"], genes["subtype"]))
     all_g = set(de["gene"])
     deg_g = set(de[de["significant"]]["gene"])
 
     rows = []
     for sub in genes["subtype"].dropna().unique():
-        in_set = {g for g, s in g2s.items() if s == sub} & all_g
+
+        # Build the set of genes in this subtype that are in our tested panel.
+        in_set = set()
+        for g in g2s:
+            if g2s[g] == sub and g in all_g:
+                in_set.add(g)
+
         if len(in_set) < 2:
-            continue
-        a = len(deg_g & in_set)
-        b = len(deg_g - in_set)
-        c = len((all_g - deg_g) & in_set)
-        d = len((all_g - deg_g) - in_set)
-        _, p = fisher_exact([[a, b],[c, d]], alternative="greater")
-        rows.append({"subtype": sub,
-                     "pct_deg": a / len(in_set) * 100,
-                     "n_deg": a,
-                     "n_genes": len(in_set),
-                     "pval": p})
+            pass  # skip subtypes with fewer than 2 genes in the panel
+        else:
+            # 2x2 contingency table for Fisher's exact test:
+            #   a = DEG and in subtype
+            #   b = DEG and not in subtype
+            #   c = not DEG and in subtype
+            #   d = not DEG and not in subtype
+            a = len(deg_g & in_set)
+            b = len(deg_g - in_set)
+            c = len((all_g - deg_g) & in_set)
+            d = len((all_g - deg_g) - in_set)
+
+            _, p = fisher_exact([[a, b], [c, d]], alternative="greater")
+
+            rows.append({
+                "subtype":  sub,
+                "pct_deg":  a / len(in_set) * 100,
+                "n_deg":    a,
+                "n_genes":  len(in_set),
+                "pval":     p,
+            })
 
     df = pd.DataFrame(rows).sort_values("pct_deg", ascending=True)
 
     fig, ax = plt.subplots(figsize=(9, max(5, len(df) * 0.7)))
     fig.subplots_adjust(right=0.70)
 
-    colors = [SUBTYPE_COLORS.get(s, "#CCCCCC") for s in df["subtype"]]
+    # Build bar color list for each subtype row.
+    colors = []
+    for s in df["subtype"]:
+        colors.append(SUBTYPE_COLORS.get(s, "#CCCCCC"))
+
     y_pos = range(len(df))
     ax.barh(y_pos, df["pct_deg"].values, color=colors, alpha=0.85, height=0.6)
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(df["subtype"].values, fontsize=11)
-    for tick, sub in zip(ax.get_yticklabels(), df["subtype"].values):
+
+    for tick in ax.get_yticklabels():
+        sub = tick.get_text()
         tick.set_color(SUBTYPE_COLORS.get(sub, "#333"))
         tick.set_fontweight("bold")
 
     x_max = max(df["pct_deg"].max(), 10)
-    for i, (_, row) in enumerate(df.iterrows()):
-        sig_star = " *" if row["pval"] < 0.05 else ""
-        label = f"{row['n_deg']}/{row['n_genes']} genes   p = {row['pval']:.3f}{sig_star}"
+
+    # Annotate each bar with gene counts and p-value.
+    for i in range(len(df)):
+        row = df.iloc[i]
+
+        if row["pval"] < 0.05:
+            sig_star = " *"
+            color    = "#333333"
+            weight   = "bold"
+        else:
+            sig_star = ""
+            color    = "#888888"
+            weight   = "normal"
+
+        label = (str(row["n_deg"]) + "/" + str(row["n_genes"]) +
+                 " genes   p = " + "%.3f" % row["pval"] + sig_star)
+
         ax.text(
             x_max * 1.04, i, label,
             va="center", ha="left", fontsize=9,
-            color="#333333" if row["pval"] < 0.05 else "#888888",
-            fontweight="bold" if row["pval"] < 0.05 else "normal",
+            color=color, fontweight=weight,
             clip_on=False
         )
 
@@ -384,10 +479,14 @@ def plot_pathway_enrichment(de, genes):
         fontsize=11
     )
 
-    bg_rate = len(deg_g) / len(all_g) * 100 if all_g else 0
+    if len(all_g) > 0:
+        bg_rate = len(deg_g) / len(all_g) * 100
+    else:
+        bg_rate = 0
+
     ax.axvline(bg_rate, color="#888888", lw=0.9, ls="--", alpha=0.7)
     ax.text(bg_rate + 0.5, len(df) - 0.3,
-            f"Background\n({bg_rate:.0f}%)",
+            "Background\n(" + "%.0f" % bg_rate + "%)",
             fontsize=7.5, color="#888888", va="top")
 
     fig.savefig(FIG_DIR / "fig8_pathway_enrichment.png", bbox_inches="tight")
@@ -397,8 +496,9 @@ def plot_pathway_enrichment(de, genes):
 
 def print_summary(de):
     print("\nTop genes by |log2FC|")
-    top = de.reindex(de["log2fc"].abs().sort_values(ascending=False).index).head(10)
-    print(top[["gene","log2fc","pval","padj","significant"]].to_string(index=False))
+    top = (de.reindex(de["log2fc"].abs().sort_values(ascending=False).index)
+             .head(10))
+    print(top[["gene", "log2fc", "pval", "padj", "significant"]].to_string(index=False))
     top.to_csv(OUT_DIR / "top_genes.csv", index=False)
 
 
@@ -406,12 +506,15 @@ def main():
     print("=" * 55)
     print(" Step 4: Pathway Analysis")
     print("=" * 55)
+
     raw, meta, genes = load()
     de = differential_expression(raw, meta)
+
     plot_volcano(de, genes)
     plot_fc_barplot(de, genes)
     plot_pathway_enrichment(de, genes)
     print_summary(de)
+
     print("\nAnalysis complete.")
 
 
