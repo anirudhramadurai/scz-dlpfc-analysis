@@ -2,7 +2,9 @@
 
 **Bioinformatics analysis of GABAergic interneuron gene expression in the dorsolateral prefrontal cortex in schizophrenia**
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue) ![License](https://img.shields.io/badge/License-MIT-green) ![Data](https://img.shields.io/badge/Data-GEO%3AGSE53987-orange)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Data](https://img.shields.io/badge/Data-GEO%3AGSE53987-orange)](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE53987)
 
 | | |
 |---|---|
