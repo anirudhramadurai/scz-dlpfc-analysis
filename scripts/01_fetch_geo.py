@@ -31,7 +31,7 @@ Usage:
   python scripts/01_fetch_geo.py
 
 Outputs:
-  data/allen_scz_raw.csv        Long-format expression (primary input for pipeline)
+  data/gse53987_dlpfc_raw.csv        Long-format expression (primary input for pipeline)
   data/geo_expression_wide.csv  Wide matrix (genes x donors)
   data/geo_metadata.csv         Sample metadata
 
@@ -491,14 +491,14 @@ def to_long(expr, meta):
 
 
 def save(long, wide, meta):
-    long.to_csv(DATA_DIR / "allen_scz_raw.csv",       index=False)
+    long.to_csv(DATA_DIR / "gse53987_dlpfc_raw.csv",       index=False)
     wide.to_csv(DATA_DIR / "geo_expression_wide.csv")
     meta.to_csv(DATA_DIR / "geo_metadata.csv")
 
     print("\n" + "=" * 60)
     print("SUCCESS")
     print("=" * 60)
-    print("  data/allen_scz_raw.csv   (" + str(len(long)) + " records)")
+    print("  data/gse53987_dlpfc_raw.csv   (" + str(len(long)) + " records)")
     print("  Genes   : " + str(long["gene"].nunique()))
     print("  Donors  : " + str(long["donor_id"].nunique()))
 

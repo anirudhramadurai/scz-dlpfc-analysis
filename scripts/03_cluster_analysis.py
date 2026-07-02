@@ -2,7 +2,7 @@
 03_cluster_analysis.py
 Hierarchical clustering, PCA, GABAergic co-expression, and cluster validation.
 
-Reads batch-corrected, z-scored expression data from 02_preprocess.py and
+Reads z-scored expression data from 02_preprocess.py and
 produces five figures:
 
   fig1_donor_dendrogram.png     Ward's linkage dendrogram of donors, colored

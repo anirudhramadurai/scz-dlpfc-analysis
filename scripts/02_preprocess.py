@@ -89,7 +89,7 @@ GABAERGIC_SUBTYPES = {"PV+", "SST+", "VIP+", "CB+", "Pan-GABA"}
 
 
 def load_raw():
-    path = DATA_DIR / "allen_scz_raw.csv"
+    path = DATA_DIR / "gse53987_dlpfc_raw.csv"
     if not path.exists():
         raise FileNotFoundError(str(path) + " not found. Run 01_fetch_geo.py first.")
     df = pd.read_csv(path)
@@ -291,7 +291,7 @@ def save(expr_z, expr_log, meta, gene_annot):
 
 def main():
     print("=" * 60)
-    print(" Step 2: Preprocessing + Batch Correction")
+    print(" Step 2: Preprocessing")
     print("=" * 60)
 
     df = load_raw()
@@ -299,7 +299,7 @@ def main():
     df = transform(df)
 
     pivot, meta = build_pivot(df)
-    print("\nExpression matrix before correction: " + str(pivot.shape))
+    print("\nExpression matrix shape: " + str(pivot.shape))
 
     # correct_batch() detects batch from GSM ID prefix and applies linear
     # regression correction. With DLPFC-only samples (n=34), all donors fall
@@ -308,7 +308,7 @@ def main():
     pivot_bc = correct_batch(pivot, meta)
 
     expr_z    = zscore(pivot_bc)
-    expr_log  = pivot_bc  # keep log2 batch-corrected for DE analysis
+    expr_log  = pivot_bc  # log2-transformed; batch correction no-ops on single-cohort DLPFC data
 
     gene_annot = build_gene_annotations(list(expr_z.columns))
 
