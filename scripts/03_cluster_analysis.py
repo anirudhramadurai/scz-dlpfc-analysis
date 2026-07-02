@@ -81,7 +81,7 @@ SUBTYPE_COLORS = {
     "VIP+":            "#1E8449",
     "CB+":             "#D4AC0D",
     "Pan-GABA":        "#BA4A00",
-    "Excitatory":      "#7D3C98",
+    "Excitatory":      "#34495E",
     "Oligodendrocyte": "#566573",
     "Risk/Signaling":  "#909497",
     "Synaptic":        "#B2BABB",
@@ -283,6 +283,13 @@ def plot_gabaergic_coexpression(expr, genes, meta):
         ("Control",       "Control (n="       + str(n_ctrl) + ")", CTRL_COLOR),
     ]
 
+    # Compute a single reference gene order from the full cohort so both
+    # panels share the same row/column layout — makes cross-panel comparison
+    # of individual pairs (e.g. PVALB vs GAD1) immediate.
+    ref_corr  = expr[gaba].corr(method="pearson")
+    ref_order = [gaba[i] for i in leaves_list(
+                     linkage(pdist(ref_corr.values), method="ward"))]
+
     for i in range(len(axes)):
         ax    = axes[i]
         diag  = plot_groups[i][0]
@@ -297,9 +304,8 @@ def plot_gabaergic_coexpression(expr, genes, meta):
         if len(sub) < 3:
             ax.set_title("Insufficient data (" + diag + ")")
         else:
-            corr  = sub.corr(method="pearson")
-            order = leaves_list(linkage(pdist(corr.values), method="ward"))
-            corr  = corr.iloc[order, order]
+            corr = sub.corr(method="pearson").reindex(
+                       index=ref_order, columns=ref_order)
 
             sns.heatmap(
                 corr, ax=ax,
@@ -414,7 +420,7 @@ def plot_gene_heatmap(expr, meta, genes):
     ax_diag.set_ylim(0, 1)
     ax_diag.axis("off")
     ax_diag.set_title(
-        "Gene Expression Heatmap - Batch-Corrected, Z-Scored\n"
+        "Gene Expression Heatmap - Z-Scored\n"
         "Donors sorted by diagnosis  |  Genes clustered by Ward's linkage",
         fontsize=11, pad=6
     )

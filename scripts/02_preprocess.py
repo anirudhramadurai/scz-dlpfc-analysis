@@ -283,8 +283,8 @@ def save(expr_z, expr_log, meta, gene_annot):
     gene_annot.to_csv(DATA_DIR / "gene_annotations.csv", index=False)
 
     print("\nSaved to " + str(DATA_DIR) + "/")
-    print("  expression_matrix.csv      (batch-corrected, z-scored)")
-    print("  expression_matrix_raw.csv  (batch-corrected, log2)")
+    print("  expression_matrix.csv      (z-scored)")
+    print("  expression_matrix_raw.csv  (log2)")
     print("  donor_metadata.csv")
     print("  gene_annotations.csv")
 

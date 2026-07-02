@@ -80,7 +80,7 @@ SUBTYPE_COLORS = {
     "VIP+":            "#1E8449",
     "CB+":             "#D4AC0D",
     "Pan-GABA":        "#BA4A00",
-    "Excitatory":      "#7D3C98",
+    "Excitatory":      "#34495E",
     "Oligodendrocyte": "#566573",
     "Risk/Signaling":  "#909497",
     "Synaptic":        "#B2BABB",
@@ -163,7 +163,7 @@ def differential_expression(raw, meta):
 
 def plot_volcano(de, genes):
     """
-    Volcano plot: log2FC (x) vs -log10(p-value) (y).
+    Volcano plot: log2FC (x) vs -log10(padj) (y).
     Significant genes labeled and colored by interneuron subtype.
     """
     print("\nFig 6: Volcano plot")
@@ -174,7 +174,7 @@ def plot_volcano(de, genes):
 
     # Non-significant genes: small gray dots.
     ns = de[~de["significant"]]
-    ax.scatter(ns["log2fc"], -np.log10(ns["pval"] + 1e-10),
+    ax.scatter(ns["log2fc"], -np.log10(ns["padj"] + 1e-10),
                c="#CCCCCC", s=25, alpha=0.55, zorder=2)
 
     # Significant genes: larger dots colored by subtype.
@@ -182,7 +182,7 @@ def plot_volcano(de, genes):
     for i in range(len(sig)):
         row   = sig.iloc[i]
         color = SUBTYPE_COLORS.get(g2s.get(row["gene"], "SCZ candidate"), "#999")
-        ax.scatter(row["log2fc"], -np.log10(row["pval"] + 1e-10),
+        ax.scatter(row["log2fc"], -np.log10(row["padj"] + 1e-10),
                    c=color, s=90, alpha=0.95, zorder=4,
                    edgecolors="white", linewidths=0.7)
 
@@ -208,7 +208,7 @@ def plot_volcano(de, genes):
     for i in range(len(sig)):
         row   = sig.iloc[i]
         x0    = row["log2fc"]
-        y0    = -np.log10(row["pval"] + 1e-10)
+        y0    = -np.log10(row["padj"] + 1e-10)
         color = SUBTYPE_COLORS.get(g2s.get(row["gene"], "SCZ candidate"), "#333")
         xoff, yoff = LABEL_OFFSETS.get(row["gene"], (10, 6))
         ax.annotate(
@@ -235,7 +235,7 @@ def plot_volcano(de, genes):
             fontsize=9, color=CTRL_COLOR, ha="left", va="bottom")
 
     ax.set_xlabel("log2 Fold Change  (Schizophrenia - Control)", fontsize=11)
-    ax.set_ylabel("-log10(p-value)", fontsize=11)
+    ax.set_ylabel("-log10(adjusted p-value)", fontsize=11)
     ax.set_title(
         "Differential Expression - DLPFC, Schizophrenia vs Control\n"
         "FDR < " + str(ALPHA) +
@@ -335,7 +335,8 @@ def plot_fc_barplot(de, genes):
         else:
             style = "normal"
             color = "#AAAAAA"
-        ax.text(x_pval, i, "p = " + "%.3f" % row["pval"],
+        pval_str = "p < 0.001" if row["pval"] < 0.001 else "p = %.3f" % row["pval"]
+        ax.text(x_pval, i, pval_str,
                 va="center", ha="left", fontsize=8,
                 fontweight=style, color=color,
                 transform=ax.transData, clip_on=False)
