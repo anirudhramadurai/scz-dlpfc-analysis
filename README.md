@@ -10,16 +10,16 @@
 |---|---|
 | **Dataset** | GSE53987 (NCBI GEO): 15 SCZ vs. 19 control postmortem DLPFC donors (n = 34) |
 | **DEGs** | 3 genes at FDR < 0.1: PVALB (down, padj = 0.011), RGS4 (down, padj = 0.006, subtype unassigned), CARTPT (up, padj = 0.030) |
-| **Clustering** | ARI near 0 -- diagnosis not recovered (expected in postmortem transcriptomics) |
-| **Key finding** | Co-expression independence between PV+ and SST+ markers collapses in schizophrenia |
+| **Clustering** | ARI = 0.198 (weak, not diagnostically useful) -- diagnosis not recovered (expected in postmortem transcriptomics) |
+| **Key finding** | Co-expression independence between PV+ and SST+ markers is directionally reduced in schizophrenia (exploratory; not significant after multiple-testing correction at n = 34) |
 
 ---
 
 ## Overview
 
-Using publicly available postmortem brain microarray data (GSE53987, 15 schizophrenia vs. 19 control DLPFC samples, n = 34), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. Unsupervised clustering did not recover diagnosis (an ARI near 0), which is consistent with the postmortem transcriptomics literature.
+Using publicly available postmortem brain microarray data (GSE53987, 15 schizophrenia vs. 19 control DLPFC samples, n = 34), I built a four-script Python pipeline to ask whether GABAergic interneuron subtypes show coordinated or independent transcriptional dysregulation in schizophrenia. Unsupervised clustering did not recover diagnosis (ARI = 0.198, weak and not diagnostically useful), which is consistent with the postmortem transcriptomics literature.
 
-The more interesting result came from co-expression analysis: the normal functional independence between PV+ and SST+ interneuron markers collapses in schizophrenia, with all markers co-varying as a single module rather than showing subtype-specific patterns. Three genes were significantly differentially expressed (FDR < 0.1): PVALB (PV+, downregulated, padj = 0.011), RGS4 (downregulated, padj = 0.006, subtype unassigned), and CARTPT (upregulated, padj = 0.030). No interneuron subtype reached significance in enrichment analysis at this sample size, consistent with limited statistical power at n = 34. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and explicit covariates such as RNA integrity number and postmortem interval were not available for this dataset.
+The more interesting result came from co-expression analysis: the normal functional independence between PV+ and SST+ interneuron markers is directionally reduced in schizophrenia, with all markers tending to co-vary as a single module rather than showing subtype-specific patterns. Formal Fisher z-tests on all 36 pairwise correlations found no pair surviving Benjamini–Hochberg correction at this sample size (n = 34), so this pattern should be treated as an exploratory observation rather than a confirmed finding. Three genes were significantly differentially expressed (FDR < 0.1): PVALB (PV+, downregulated, padj = 0.011), RGS4 (downregulated, padj = 0.006, subtype unassigned), and CARTPT (upregulated, padj = 0.030). No interneuron subtype reached significance in enrichment analysis at this sample size, consistent with limited statistical power at n = 34. The main limitation is that the analysis uses a curated 48-gene panel rather than an unbiased whole-transcriptome approach, and although RIN, PMI, pH, age, and sex are present in the GEO metadata and well-balanced between groups (all Welch p > 0.35), they were not incorporated as covariates in the differential expression model.
 
 
 ---
@@ -151,7 +151,7 @@ Welch's t-test per gene with Benjamini-Hochberg FDR correction [7], followed by 
 
 This dendrogram shows the result of hierarchical clustering of all 34 DLPFC donors based solely on their gene expression profiles, with no knowledge of diagnosis. Each leaf at the bottom is one donor; the color bar shows their actual diagnosis (red = schizophrenia, blue = control). The height at which two branches merge indicates how dissimilar those donors are.
 
-If gene expression reliably distinguished schizophrenia from controls, we would expect two large clusters, one mostly red and one mostly blue. Instead, the colors are intermixed throughout. The Adjusted Rand Index (ARI = -0.008) quantifies this: ARI of 1.0 would mean perfect recovery of diagnosis; ARI near 0 means the clustering is no better than random with respect to diagnosis.
+If gene expression reliably distinguished schizophrenia from controls, we would expect two large clusters, one mostly red and one mostly blue. Instead, the colors are intermixed throughout. The Adjusted Rand Index (ARI = 0.198) quantifies this: ARI of 1.0 would mean perfect recovery of diagnosis; ARI near 0 means no better than random. A value of 0.198 indicates weak but positive alignment with diagnosis — the clusters are not meaningless, but they do not cleanly separate SCZ from control.
 
 This is consistent with a well-established finding in postmortem brain transcriptomics: technical variables like RNA quality and postmortem interval, along with biological covariates like age and medication history, typically explain more expression variance than disease status does [5]. It is not a pipeline failure; it is an accurate result about the nature of postmortem data, and reporting it honestly matters.
 
@@ -161,7 +161,7 @@ Principal Component Analysis (PCA) is a dimensionality reduction technique that 
 
 ![Cluster validation](figures/fig5_cluster_validation.png)
 
-Cluster validation across k = 2 to 5 clusters. The left panel shows silhouette score, a measure of internal validity describing how well-separated the clusters are from each other [9]. The right panel shows ARI vs diagnosis (external validity). Internal validity is modest but real. External validity remains near zero across all values of k.
+Cluster validation across k = 2 to 5 clusters. The left panel shows silhouette score, a measure of internal validity describing how well-separated the clusters are from each other [9]. The right panel shows ARI vs diagnosis (external validity). Internal validity is modest but real. External validity remains weak across all values of k (ARI 0.09–0.20).
 
 ---
 
@@ -177,7 +177,7 @@ This figure shows Pearson correlation matrices for all pairwise combinations of 
 
 **In schizophrenia (left panel):** that independence is directionally reduced. In the SCZ group (n = 15), PVALB shows elevated correlations with GAD1 (r = 0.56), NPY (r = 0.58), and SST (r = 0.25) relative to controls, and all markers shift toward co-varying together [10].
 
-**What this means:** In healthy cortex, PV+ and SST+ interneurons maintain relatively independent expression profiles, reflecting their distinct functional roles. In schizophrenia, that separation collapses and all GABAergic markers rise and fall together, pointing to coordinated rather than subtype-specific dysregulation, and directly addressing Research Question 1.
+**What this means:** In healthy cortex, PV+ and SST+ interneurons maintain relatively independent expression profiles, reflecting their distinct functional roles. In schizophrenia, that separation is directionally reduced and all GABAergic markers tend to rise and fall together, consistent with coordinated rather than subtype-specific dysregulation and directly addressing Research Question 1. This pattern was not statistically confirmed after multiple-testing correction and should be interpreted as hypothesis-generating at this sample size.
 
 ---
 
@@ -221,7 +221,7 @@ Note: enrichment was tested against the curated subtype labels defined in this p
 
 | Question | Finding |
 |---|---|
-| Does clustering recover diagnosis? | No (ARI close to 0). Technical and biological covariates dominate variance [5]. |
+| Does clustering recover diagnosis? | No. ARI = 0.198 — weak positive alignment but not diagnostically useful. Technical and biological covariates dominate variance [5]. |
 | Do GABAergic subtypes co-vary independently? | No. In SCZ, all markers co-vary as a single module. PV+ independence from SST+ is lost. |
 | Which genes are differentially expressed? | 3 genes (FDR < 0.1): PVALB (PV+, down), RGS4 (down), CARTPT (up). Power limited at n = 34 [7]. |
 | Which subtypes are enriched in DEGs? | No significant enrichment; power is insufficient at n = 34. PVALB is the only DEG among interneuron markers [6]. |
@@ -270,8 +270,17 @@ Figures are written to `figures/`. Data files are written to `data/`. Result tab
 - Sample size (n = 34 DLPFC donors) substantially limits statistical power; only the strongest effect sizes survive FDR correction at this n [7]
 - The 48-gene panel is curated and not unbiased; enrichment results reflect prior biological knowledge built into the gene selection [6]
 - Of the 58 target genes from Guillozet-Bongaarts et al., 50 were included in TARGET_GENES; of those, CHRNA7 and PRODH were absent from the GPL570 platform and excluded, leaving 48 genes analyzed [2]
-- No batch correction was applied (all 34 DLPFC donors fall within one processing cohort); RNA integrity number (RIN), postmortem interval (PMI), and medication exposure were not available as explicit covariates and could not be controlled for [5]
-- Antipsychotic medication exposure rates for the GSE53987 cohort are not reported in the Lanz et al. paper; medication confounding cannot be ruled out without explicit records [2]
+- No batch correction was applied (all 34 DLPFC donors fall within one processing cohort); RIN, PMI, pH, age, and sex are available in the GEO metadata and well-balanced between groups (all Welch p > 0.35), but were not incorporated as covariates in the differential expression model — adding them to a linear model is a straightforward extension:
+
+  | Covariate | SCZ (n=15) | Control (n=19) | Welch *p* |
+  |---|---|---|---|
+  | Age (years) | 46.0 ± 8.6 | 48.1 ± 10.6 | 0.54 |
+  | PMI (hours) | 18.9 ± 6.7 | 19.5 ± 5.1 | 0.77 |
+  | Brain pH | 6.5 ± 0.4 | 6.6 ± 0.2 | 0.54 |
+  | RIN | 7.6 ± 0.7 | 7.8 ± 0.6 | 0.38 |
+  | Sex (M/F) | 7/8 | 10/9 | 1.00 (Fisher) |
+
+- Antipsychotic medication exposure at time of death is not recorded in the GEO metadata and cannot be controlled for; medication confounding cannot be ruled out without explicit records [2]
 - Pathway enrichment was tested against manually curated interneuron subtype labels only, not against external databases (KEGG, GO, Reactome) [6]
 - Microarray measures relative RNA abundance across thousands of probes simultaneously but lacks the sensitivity of RNA-seq for lowly expressed genes
 - Results are correlational; no causal inference is possible from observational postmortem data
