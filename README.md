@@ -60,7 +60,7 @@ Postmortem studies have converged, over decades, on reduced expression of GABAer
 - Reduced **GAD1** (GAD67) mRNA — the enzyme that makes GABA from glutamate, and one of the most reproducible molecular findings in the field [1, 2].
 - Reduced **PVALB**, especially in the deeper layers [1, 2].
 - Reduced **SST** mRNA, replicated across independent cohorts [1, 2].
-- Notably, interneuron *density* (by pan-interneuron markers such as GAD1 at the cellular level) is not reduced [2]. The signal looks like downregulation inside surviving cells rather than cell loss.
+- Notably, interneuron *density* (by pan-interneuron markers such as GAD1 at the cellular level) is not reduced [2, 10]. The signal looks like downregulation inside surviving cells rather than cell loss.
 
 Together these support the GABAergic hypothesis: weakened cortical inhibition contributes to prefrontal dysfunction and cognitive symptoms [1, 10].
 
@@ -93,7 +93,7 @@ Expression data come from **NCBI GEO accession GSE53987** [3]. GEO is NCBI's pub
 
 The platform is an **Affymetrix microarray**, which reads out thousands of genes at once: labeled RNA hybridizes to short DNA probes of known sequence, and each probe's fluorescence reflects how much of its target RNA was present.
 
-**On the data source.** The project was first built around the Allen Brain Atlas Human ISH Schizophrenia Study (Guillozet-Bongaarts et al. 2014 [2]), which profiled 58 genes by in situ hybridization in DLPFC tissue from 19 SCZ donors and 33 controls. In situ hybridization labels RNA inside intact tissue sections, so you can see which cells express a gene and how densely. That resource's REST API is no longer operational [4], so I moved to GSE53987, which covers the same region, the same comparison, and an overlapping gene set, and gives continuous quantitative signal across all probes at once.
+**On the data source.** The project was first built around the Allen Brain Atlas Human ISH Schizophrenia Study [4] (Guillozet-Bongaarts et al. 2014 [2]), which profiled 58 genes by in situ hybridization in DLPFC tissue from 19 SCZ donors and 33 controls. In situ hybridization labels RNA inside intact tissue sections, so you can see which cells express a gene and how densely. That resource's REST API is no longer operational, so I moved to GSE53987, which covers the same region, the same comparison, and an overlapping gene set, and gives continuous quantitative signal across all probes at once.
 
 **Gene panel.** Of the 58 target genes from Guillozet-Bongaarts et al., 50 were carried into the target list; CHRNA7 and PRODH are absent from the GPL570 platform, leaving 48 analyzed. (The remaining 8 of the original 58 were not carried forward.)
 
@@ -246,7 +246,7 @@ Figures land in `figures/`, data in `data/`, result tables in `output/`.
   | RIN | 7.6 ± 0.7 | 7.8 ± 0.6 | 0.38 |
   | Sex (M/F) | 7/8 | 10/9 | 1.00 (Fisher) |
 
-- **Medication.** Antipsychotic exposure at death is not in the GEO metadata, so medication effects cannot be separated from disease effects — a limitation shared across the postmortem field [2].
+- **Medication.** Antipsychotic exposure at death is not in the GEO metadata [3], so medication effects cannot be separated from disease effects — a limitation shared across the postmortem field [2].
 - **Enrichment scope.** Tested against the curated subtype labels only, not KEGG/GO/Reactome [6].
 - **Assay.** Microarray reads relative abundance across many probes at once but is less sensitive than RNA-seq for low-expression genes.
 - **Design.** Postmortem data are observational; nothing here supports a causal claim.
